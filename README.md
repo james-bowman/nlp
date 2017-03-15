@@ -2,9 +2,9 @@
 
 <img src="https://github.com/james-bowman/nlp/raw/master/Gophers.008.crop.png" alt="nlp" align="left" />
 
-An implementation of selected machine learning algorithms for basic natural language processing in golang.  Initial focus is on Latent Semantic Analysis.
+An implementation of selected machine learning algorithms for basic natural language processing in golang.  The initial focus for this project is Latent Semantic Analysis to allow retrieval/searching, clustering and classification of text documents based upon semantic content.
 
-Built upon gonum/mat64.  Some inspiration was taken from Python's SciKit Learn.
+Built upon [gonum/matrix](https://github.com/gonum/matrix) with some inspiration taken from Python's SciKit Learn.
 
 Check out [the go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
 
