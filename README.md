@@ -2,9 +2,9 @@
 
 <img src="https://github.com/james-bowman/nlp/raw/master/Gophers.008.crop.png" alt="nlp" align="left" />
 
-An implementation of selected machine learning algorithms for basic natural language processing in golang.  The initial focus for this project is Latent Semantic Analysis to allow retrieval/searching, clustering and classification of text documents based upon semantic content.
+An implementation of selected machine learning algorithms for basic natural language processing in golang.  The initial focus for this project is [Latent Semantic Analysis](https://en.wikipedia.org/wiki/Latent_semantic_analysis) to allow retrieval/searching, clustering and classification of text documents based upon semantic content.
 
-Built upon [gonum/matrix](https://github.com/gonum/matrix) with some inspiration taken from Python's SciKit Learn.
+Built upon [gonum/matrix](https://github.com/gonum/matrix) with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/).
 
 Check out [the go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
 
@@ -29,3 +29,10 @@ Check out [the go documentation page](https://godoc.org/github.com/james-bowman/
 * Clustering algorithms e.g. K-means
 * Classification algorithms e.g. SVM, random forest, etc.
 
+References
+
+[Wikipedia](https://en.wikipedia.org/wiki/Latent_semantic_analysis)
+[Rosario, Barbara. Latent Semantic Indexing: An overview. INFOSYS 240 Spring 2000](http://people.ischool.berkeley.edu/~rosario/projects/LSI.pdf)
+[Latent Semantic Analysis, a scholarpedia article on LSA written by Tom Landauer, one of the creators of LSA.](http://www.scholarpedia.org/article/Latent_semantic_analysis)
+[Thomo, Alex. Latent Semantic Analysis (Tutorial).](http://webhome.cs.uvic.ca/~thomo/svd.pdf)
+[Latent Semantic Indexing. Standford NLP Course](http://nlp.stanford.edu/IR-book/html/htmledition/latent-semantic-indexing-1.html)
