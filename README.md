@@ -14,10 +14,11 @@ Check out [the go documentation page](https://godoc.org/github.com/james-bowman/
 * Term document matrix construction and manipulation
 * (LSA) Latent Semantic Analysis (aka Latent Semantic Indexing (LSI)) implementation
 * TF-IDF weighting to account for frequently occuring words
-* SVD (Singular Value Decomposition) implementation for reduced memory usage, noise reduction amd encoding term co-occurance and semantic meaning.
+* Truncated SVD (Singular Value Decomposition) implementation for reduced memory usage, noise reduction amd encoding term co-occurance and semantic meaning.
 
 ## Planned
 
+* Pipelining of transformations to simplify usage e.g. vectorisation -> tf-idf weighting -> truncated SVD
 * Stop word removal to remove frequently occuring words e.g. "the", "and"
 * Stemming to treat words with common root as the same e.g. "go" and "going"
 * Feature hashing implementation ('the hashing trick's) for reduced reliance on "completeness" of training data set
