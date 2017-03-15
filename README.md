@@ -29,7 +29,7 @@ Check out [the go documentation page](https://godoc.org/github.com/james-bowman/
 * Clustering algorithms e.g. K-means
 * Classification algorithms e.g. SVM, random forest, etc.
 
-References
+## References
 
 1. [Wikipedia](https://en.wikipedia.org/wiki/Latent_semantic_analysis)
 1. [Rosario, Barbara. Latent Semantic Indexing: An overview. INFOSYS 240 Spring 2000](http://people.ischool.berkeley.edu/~rosario/projects/LSI.pdf)
