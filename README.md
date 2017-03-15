@@ -1,6 +1,6 @@
-# Natural Language Processing [![Build Status](https://travis-ci.org/thatguystone/swan.svg)](https://travis-ci.org/thatguystone/swan) [![GoDoc](https://godoc.org/github.com/james-bowman/nlp?status.svg)](https://godoc.org/github.com/james-bowman/nlp)
+# Natural Language Processing [![GoDoc](https://godoc.org/github.com/james-bowman/nlp?status.svg)](https://godoc.org/github.com/james-bowman/nlp)
 
-<img src="https://github.com/james-bowman/nlp/raw/master/logo.png" alt="nlp" align="left" hspace="20" vspace="0" />
+<img src="https://github.com/james-bowman/nlp/raw/master/Gophers.008.crop.png" alt="nlp" align="left" hspace="20" vspace="0" />
 
 An implementation of selected machine learning algorithms for basic natural language processing in golang.  Built upon gonum/mat64.  Some inspiration was taken from Python's SciKit Learn.
 
