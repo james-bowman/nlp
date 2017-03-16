@@ -38,12 +38,12 @@ func Example() {
 	_, docs := lsi.Dims()
 	for i := 0; i < docs; i++ {
 		similarity := CosineSimilarity(queryVector.ColView(0), lsi.ColView(i))
-		fmt.Printf("Comparing '%s' = %f\n", testCorpus[i], similarity)
 		if similarity > highestSimilarity {
 			matched = i
 			highestSimilarity = similarity
 		}
 	}
 
-	fmt.Printf("Matched '%s' with a Cosine Similarity of %f\n", testCorpus[matched], highestSimilarity)
+	fmt.Printf("Matched '%s'", testCorpus[matched])
+	// Output: Matched 'The quick brown fox jumped over the lazy dog'
 }
