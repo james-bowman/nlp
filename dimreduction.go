@@ -29,7 +29,7 @@ func NewTruncatedSVD(k int) *TruncatedSVD {
 
 // Fit performs the SVD factorisation on the input training data matrix, mat and 
 // stores the output term matrix as a transform to apply to matrices in the Transform matrix.
-func (t *TruncatedSVD) Fit(mat *mat64.Dense) *TruncatedSVD {
+func (t *TruncatedSVD) Fit(mat mat64.Matrix) *TruncatedSVD {
 	t.FitTransform(mat)
 	return t
 }
@@ -37,7 +37,7 @@ func (t *TruncatedSVD) Fit(mat *mat64.Dense) *TruncatedSVD {
 // Transform applies the transform decomposed from the training data matrix in Fit() 
 // to the input matrix.  The resulting output matrix will be the closest approximation 
 // to the input matrix at a reduced rank.
-func (t *TruncatedSVD) Transform(mat *mat64.Dense) (*mat64.Dense, error) {
+func (t *TruncatedSVD) Transform(mat mat64.Matrix) (*mat64.Dense, error) {
 	var product mat64.Dense
 
 	product.Product(t.transform.T(), mat)
@@ -47,7 +47,7 @@ func (t *TruncatedSVD) Transform(mat *mat64.Dense) (*mat64.Dense, error) {
 
 // FitTransform is approximately equivalent to calling Fit() followed by Transform() on the // same matrix.  This is a useful shortcut where separate trianing data is not being 
 // used to fit the model i.e. the model is fitted on the fly to the test data.
-func (t *TruncatedSVD) FitTransform(mat *mat64.Dense) (*mat64.Dense, error) {
+func (t *TruncatedSVD) FitTransform(mat mat64.Matrix) (*mat64.Dense, error) {
 	var svd mat64.SVD
 	if ok := svd.Factorize(mat, matrix.SVDThin); !ok {
 		return nil, fmt.Errorf("Failed SVD Factorisation of working matrix")
