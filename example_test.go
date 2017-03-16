@@ -16,8 +16,8 @@ func Example() {
 	tokeniser := NewCountVectoriser()
 	transformer := NewTfidfTransformer()
 
-	// set k (the number of dimensions following truncation) to 2
-	reducer := NewTruncatedSVD(2)
+	// set k (the number of dimensions following truncation) to 4
+	reducer := NewTruncatedSVD(4)
 
 	// Transform the corpus into an LSI fitting the model to the documents in the process
 	mat, _ := tokeniser.FitTransform(testCorpus...)
@@ -38,11 +38,12 @@ func Example() {
 	_, docs := lsi.Dims()
 	for i := 0; i < docs; i++ {
 		similarity := CosineSimilarity(queryVector.ColView(0), lsi.ColView(i))
+		fmt.Printf("Comparing '%s' = %f\n", testCorpus[i], similarity)
 		if similarity > highestSimilarity {
 			matched = i
 			highestSimilarity = similarity
 		}
 	}
 
-	fmt.Printf("Matched %s with a Cosine Similarity of %f", testCorpus[matched], highestSimilarity)
+	fmt.Printf("Matched '%s' with a Cosine Similarity of %f\n", testCorpus[matched], highestSimilarity)
 }
