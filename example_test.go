@@ -13,20 +13,20 @@ func Example() {
 
 	query := "the brown fox ran around the dog"
 
-	tokeniser := NewCountVectoriser()
+	vectoriser := NewCountVectoriser()
 	transformer := NewTfidfTransformer()
 
 	// set k (the number of dimensions following truncation) to 4
 	reducer := NewTruncatedSVD(4)
 
 	// Transform the corpus into an LSI fitting the model to the documents in the process
-	mat, _ := tokeniser.FitTransform(testCorpus...)
+	mat, _ := vectoriser.FitTransform(testCorpus...)
 	mat, _ = transformer.FitTransform(mat)
 	lsi, _ := reducer.FitTransform(mat)
 
 	// run the query through the same pipeline that was fitted to the corpus and
 	// to project it into the same dimensional space
-	mat, _ = tokeniser.Transform(query)
+	mat, _ = vectoriser.Transform(query)
 	mat, _ = transformer.Transform(mat)
 	queryVector, _ := reducer.Transform(mat)
 
