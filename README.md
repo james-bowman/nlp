@@ -14,18 +14,20 @@ Check out [the go documentation page](https://godoc.org/github.com/james-bowman/
 
 * Convert plain text strings into numerical feature vectors for analysis
 * Term document matrix construction and manipulation
-* (LSA) Latent Semantic Analysis (aka Latent Semantic Indexing (LSI)) implementation
+* LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI)) implementation
 * TF-IDF weighting to account for frequently occuring words
 * Truncated SVD (Singular Value Decomposition) implementation for reduced memory usage, noise reduction and encoding term co-occurance and semantic meaning.
+* Cosine similarity implementation to calculate the similarity (measured in terms of difference in angles) between 2 feature vectors.
 
 ## Planned
 
 * Pipelining of transformations to simplify usage e.g. vectorisation -> tf-idf weighting -> truncated SVD
 * Stop word removal to remove frequently occuring words e.g. "the", "and"
 * Stemming to treat words with common root as the same e.g. "go" and "going"
-* Feature hashing implementation ('the hashing trick') for reduced reliance on "completeness" of training data set
-* Querying based on cosine similarity of centroid of query sample
+* Feature hashing implementation ('the hashing trick') for reduced reliance on "completeness" of training dataset
+* Querying based on centroid of queries rather than just a single query.
 * Sparse matrix implementation for more effective memory usage
+* LDA (Latent Dirichlet Allocation) implementation for topic extraction
 * Clustering algorithms e.g. K-means
 * Classification algorithms e.g. SVM, random forest, etc.
 
