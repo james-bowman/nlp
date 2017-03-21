@@ -6,7 +6,7 @@ An implementation of selected machine learning algorithms for basic natural lang
 
 Built upon [gonum/matrix](https://github.com/gonum/matrix) with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/).
 
-Check out [the go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
+Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-analysis-of-webpages-with-machine-learning-in-go/) or [the go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
 
 <br clear="all"/>
 
