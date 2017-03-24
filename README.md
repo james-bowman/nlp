@@ -13,6 +13,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 ## Features
 
 * Convert plain text strings into numerical feature vectors for analysis
+* Stop word removal to remove frequently occuring English words e.g. "the", "and"
 * Term document matrix construction and manipulation
 * LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI)) implementation
 * TF-IDF weighting to account for frequently occuring words
@@ -22,7 +23,6 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 ## Planned
 
 * Pipelining of transformations to simplify usage e.g. vectorisation -> tf-idf weighting -> truncated SVD
-* Stop word removal to remove frequently occuring words e.g. "the", "and"
 * Stemming to treat words with common root as the same e.g. "go" and "going"
 * Feature hashing implementation ('the hashing trick') for reduced reliance on "completeness" of training dataset
 * Querying based on centroid of queries rather than just a single query.

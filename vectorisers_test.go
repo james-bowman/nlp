@@ -23,14 +23,16 @@ var testSet = []string{
 func TestCountVectoriserFit(t *testing.T) {
 	var tests = []struct {
 		train     []string
+		stop      bool
 		vocabSize int
 	}{
-		{trainSet, 26},
-		{trainSet[0:1], 8},
+		{trainSet, false, 26},
+		{trainSet[0:1], false, 8},
+		{trainSet, true, 18},
 	}
 
 	for _, test := range tests {
-		vectoriser := NewCountVectoriser()
+		vectoriser := NewCountVectoriser(test.stop)
 
 		vectoriser.Fit(test.train...)
 
@@ -46,15 +48,17 @@ func TestCountVectoriserTransform(t *testing.T) {
 	var tests = []struct {
 		train     []string
 		vocabSize int
+		stop      bool
 		test      []string
 	}{
-		{trainSet, 26, testSet},
-		{trainSet[0:1], 8, testSet[0:3]},
-		{testSet, 26, testSet},
+		{trainSet, 26, false, testSet},
+		{trainSet[0:1], 8, false, testSet[0:3]},
+		{testSet, 26, false, testSet},
+		{testSet, 19, true, testSet},
 	}
 
 	for _, test := range tests {
-		vectoriser := NewCountVectoriser()
+		vectoriser := NewCountVectoriser(test.stop)
 		vectoriser.Fit(test.train...)
 
 		vec, err := vectoriser.Transform(test.test...)
