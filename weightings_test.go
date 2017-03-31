@@ -26,12 +26,12 @@ func TestTfidfTransformerFit(t *testing.T) {
 			},
 			dim: 6,
 			transform: []float64{
-				0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
-				0.000, 0.511, 0.000, 0.000, 0.000, 0.000,
-				0.000, 0.000, 0.223, 0.000, 0.000, 0.000,
-				0.000, 0.000, 0.000, 1.609, 0.000, 0.000,
-				0.000, 0.000, 0.000, 0.000, 0.916, 0.000,
-				0.000, 0.000, 0.000, 0.000, 0.000, 0.916,
+				0,
+				0.5108256237659907,
+				0.22314355131420976,
+				1.6094379124341003,
+				0.9162907318741551,
+				0.9162907318741551,
 			},
 		},
 	}
@@ -39,15 +39,15 @@ func TestTfidfTransformerFit(t *testing.T) {
 	for _, test := range tests {
 		transformer := NewTfidfTransformer()
 		input := mat64.NewDense(test.m, test.n, test.input)
-		output := mat64.NewDense(test.dim, test.dim, test.transform)
 
 		transformer.Fit(input)
 
-		if !mat64.EqualApprox(output, transformer.transform, 0.001) {
-			t.Logf("Expected matrix: \n%v\n but found: \n%v\n",
-				mat64.Formatted(output),
-				mat64.Formatted(transformer.transform))
-			t.Fail()
+		for i, v := range transformer.weights {
+			if v != test.transform[i] {
+				t.Logf("Expected weights: \n%v\n but found: \n%v\n",
+					test.transform, transformer.weights)
+				t.Fail()
+			}
 		}
 	}
 }
@@ -115,4 +115,25 @@ func TestTfidfTransformerTransform(t *testing.T) {
 			t.Fail()
 		}
 	}
+}
+
+func benchmarkTFIDFFitTransform(t Transformer, m, n int, b *testing.B) {
+	mat := mat64.NewDense(m, n, nil)
+
+	for n := 0; n < b.N; n++ {
+		t.FitTransform(mat)
+	}
+}
+
+func BenchmarkTFIDFFitTransform20x10(b *testing.B) {
+	benchmarkTFIDFFitTransform(NewTfidfTransformer(), 20, 10, b)
+}
+func BenchmarkTFIDFFitTransform200x100(b *testing.B) {
+	benchmarkTFIDFFitTransform(NewTfidfTransformer(), 200, 100, b)
+}
+func BenchmarkTFIDFFitTransform2000x1000(b *testing.B) {
+	benchmarkTFIDFFitTransform(NewTfidfTransformer(), 2000, 1000, b)
+}
+func BenchmarkTFIDFFitTransform20000x10000(b *testing.B) {
+	benchmarkTFIDFFitTransform(NewTfidfTransformer(), 20000, 10000, b)
 }
