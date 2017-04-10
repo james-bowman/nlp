@@ -29,7 +29,8 @@ type CountVectoriser struct {
 	stopWords     *regexp.Regexp
 }
 
-// NewCountVectoriser creates a new CountVectoriser.  If removeStopwords is true then english stop words will be removed.
+// NewCountVectoriser creates a new CountVectoriser.  If removeStopwords is true then
+// english stop words will be removed.
 func NewCountVectoriser(removeStopwords bool) *CountVectoriser {
 	var stop *regexp.Regexp
 
@@ -45,7 +46,11 @@ func NewCountVectoriser(removeStopwords bool) *CountVectoriser {
 		reStr += ")\\z"
 		stop = regexp.MustCompile(reStr)
 	}
-	return &CountVectoriser{Vocabulary: make(map[string]int), wordTokeniser: regexp.MustCompile("\\w+"), stopWords: stop}
+	return &CountVectoriser{
+		Vocabulary:    make(map[string]int),
+		wordTokeniser: regexp.MustCompile("\\w+"),
+		stopWords:     stop,
+	}
 }
 
 // Fit processes the supplied training data (a variable number of strings representing
@@ -99,8 +104,7 @@ func (v *CountVectoriser) Transform(docs ...string) (*mat64.Dense, error) {
 // same matrix.  This is a convenience where separate trianing data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 func (v *CountVectoriser) FitTransform(docs ...string) (*mat64.Dense, error) {
-	v.Fit(docs...)
-	return v.Transform(docs...)
+	return v.Fit(docs...).Transform(docs...)
 }
 
 func (v *CountVectoriser) tokenise(text string) []string {
