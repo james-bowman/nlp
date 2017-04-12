@@ -26,25 +26,19 @@ type CountVectoriser struct {
 	// and will be ignored.
 	Vocabulary    map[string]int
 	wordTokeniser *regexp.Regexp
-	stopWords     *regexp.Regexp
+	stopWords     map[string]bool
 }
 
 // NewCountVectoriser creates a new CountVectoriser.  If removeStopwords is true then
 // english stop words will be removed.
 func NewCountVectoriser(removeStopwords bool) *CountVectoriser {
-	var stop *regexp.Regexp
+	var stop map[string]bool
 
 	if removeStopwords {
-		reStr := "\\A("
-
-		for i, word := range stopWords {
-			if i != 0 {
-				reStr += `|`
-			}
-			reStr += `\Q` + word + `\E`
+		stop = make(map[string]bool)
+		for _, word := range stopWords {
+			stop[word] = true
 		}
-		reStr += ")\\z"
-		stop = regexp.MustCompile(reStr)
 	}
 	return &CountVectoriser{
 		Vocabulary:    make(map[string]int),
@@ -66,7 +60,7 @@ func (v *CountVectoriser) Fit(train ...string) *CountVectoriser {
 			if !exists {
 				// if enabled, remove stop words
 				if v.stopWords != nil {
-					if v.stopWords.MatchString(word) {
+					if v.stopWords[word] {
 						continue
 					}
 				}
