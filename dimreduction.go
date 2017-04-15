@@ -68,16 +68,15 @@ func (t *TruncatedSVD) FitTransform(mat mat64.Matrix) (*mat64.Dense, error) {
 		return nil, fmt.Errorf("Failed to truncate V")
 	}
 
-	// only build out eigenvalue matrix to k x k (truncate values) (or min(m, n) if lower)
-	sigmak := mat64.NewDense(min, min, nil)
-	for i := 0; i < min; i++ {
-		sigmak.Set(i, i, s[i])
-	}
-
 	t.transform = uk
 
+	// multiply Sigma by transpose of V.  As sigma is a symmetrical (square) diagonal matrix it is
+	// more efficient to simply multiply each element from the array of diagonal values with each
+	// element from the matrix V rather than multiplying out the non-zero values from off the diagonal.
 	var product mat64.Dense
-	product.Product(sigmak, vk.T())
+	product.Apply(func(i, j int, v float64) float64 {
+		return (v * s[i])
+	}, vk.T())
 
 	return &product, nil
 }
