@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/gonum/matrix/mat64"
+	"github.com/james-bowman/sparse"
 )
 
 func TestTfidfTransformerFit(t *testing.T) {
@@ -42,10 +43,11 @@ func TestTfidfTransformerFit(t *testing.T) {
 
 		transformer.Fit(input)
 
-		for i, v := range transformer.weights {
+		weights := transformer.transform.(*sparse.DIA).Diagonal()
+		for i, v := range weights {
 			if v != test.transform[i] {
 				t.Logf("Expected weights: \n%v\n but found: \n%v\n",
-					test.transform, transformer.weights)
+					test.transform, weights)
 				t.Fail()
 			}
 		}

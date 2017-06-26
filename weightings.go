@@ -4,12 +4,14 @@ import (
 	"math"
 
 	"github.com/gonum/matrix/mat64"
+	"github.com/james-bowman/sparse"
 )
 
+// Transformer provides a common interface for transformer steps.
 type Transformer interface {
 	Fit(mat64.Matrix) Transformer
-	Transform(mat mat64.Matrix) (*mat64.Dense, error)
-	FitTransform(mat mat64.Matrix) (*mat64.Dense, error)
+	Transform(mat mat64.Matrix) (mat64.Matrix, error)
+	FitTransform(mat mat64.Matrix) (mat64.Matrix, error)
 }
 
 // TfidfTransformer takes a raw term document matrix and weights each raw term frequency
@@ -22,7 +24,7 @@ type Transformer interface {
 // term occurs and n is the total number of documents within the corpus.  We add 1 to both n
 // and df before division to prevent division by zero.
 type TfidfTransformer struct {
-	weights []float64
+	transform mat64.Matrix
 }
 
 // NewTfidfTransformer constructs a new TfidfTransformer.
@@ -36,29 +38,42 @@ func NewTfidfTransformer() *TfidfTransformer {
 func (t *TfidfTransformer) Fit(mat mat64.Matrix) Transformer {
 	m, n := mat.Dims()
 
-	t.weights = make([]float64, m)
+	weights := make([]float64, m)
+
+	csr, ok := mat.(*sparse.CSR)
 
 	for i := 0; i < m; i++ {
 		df := 0
-		for j := 0; j < n; j++ {
-			if mat.At(i, j) != 0 {
-				df++
+		if ok {
+			df = csr.RowNNZ(i)
+		} else {
+			for j := 0; j < n; j++ {
+				if mat.At(i, j) != 0 {
+					df++
+				}
 			}
 		}
 		idf := math.Log(float64(1+n) / float64(1+df))
-		t.weights[i] = idf
+		weights[i] = idf
 	}
+
+	// build a diagonal matrix from array of term weighting values for subsequent
+	// multiplication with term document matrics
+	t.transform = sparse.NewDIA(m, weights)
 
 	return t
 }
 
-func (t *TfidfTransformer) Transform(mat mat64.Matrix) (*mat64.Dense, error) {
-	m, n := mat.Dims()
-	product := mat64.NewDense(m, n, nil)
+// Transform applies the inverse document frequency (IDF) transform by multiplying
+// each term frequency by its corresponding IDF value.  This has the effect of weighting
+// each term frequency according to how often it appears across the whole document corpus
+// so that naturally frequent occuring words are given less weight than uncommon ones.
+// The returned matrix is a sparse matrix type.
+func (t *TfidfTransformer) Transform(mat mat64.Matrix) (mat64.Matrix, error) {
+	product := &sparse.CSR{}
 
-	product.Apply(func(i, j int, v float64) float64 {
-		return (v * t.weights[i])
-	}, mat)
+	// simply multiply the matrix by our idf transform (the diagonal matrix of term weights)
+	product.Mul(t.transform, mat)
 
 	// todo: possibly L2 norm matrix to remove any bias caused by documents of different
 	// lengths where longer documents naturally have more words and so higher word counts
@@ -69,6 +84,7 @@ func (t *TfidfTransformer) Transform(mat mat64.Matrix) (*mat64.Dense, error) {
 // FitTransform is exactly equivalent to calling Fit() followed by Transform() on the
 // same matrix.  This is a convenience where separate trianing data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
-func (t *TfidfTransformer) FitTransform(mat mat64.Matrix) (*mat64.Dense, error) {
+// The returned matrix is a sparse matrix type.
+func (t *TfidfTransformer) FitTransform(mat mat64.Matrix) (mat64.Matrix, error) {
 	return t.Fit(mat).Transform(mat)
 }

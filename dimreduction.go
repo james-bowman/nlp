@@ -11,7 +11,7 @@ import (
 // This produces an approximation of the input matrix at a lower rank.  This is a core
 // component of LSA (Latent Semantic Analsis)
 type TruncatedSVD struct {
-	transform *mat64.Dense
+	transform mat64.Matrix
 
 	// K is the number of dimensions to which the output, transformed, matrix should be
 	// truncated to.  The matrix output by the FitTransform() and Transform() methods will
@@ -36,8 +36,8 @@ func (t *TruncatedSVD) Fit(mat mat64.Matrix) Transformer {
 
 // Transform applies the transform decomposed from the training data matrix in Fit()
 // to the input matrix.  The resulting output matrix will be the closest approximation
-// to the input matrix at a reduced rank.
-func (t *TruncatedSVD) Transform(mat mat64.Matrix) (*mat64.Dense, error) {
+// to the input matrix at a reduced rank.  The returned matrix is a dense matrix type.
+func (t *TruncatedSVD) Transform(mat mat64.Matrix) (mat64.Matrix, error) {
 	var product mat64.Dense
 
 	product.Product(t.transform.T(), mat)
@@ -45,9 +45,11 @@ func (t *TruncatedSVD) Transform(mat mat64.Matrix) (*mat64.Dense, error) {
 	return &product, nil
 }
 
-// FitTransform is approximately equivalent to calling Fit() followed by Transform() on the // same matrix.  This is a useful shortcut where separate trianing data is not being
+// FitTransform is approximately equivalent to calling Fit() followed by Transform()
+// on the same matrix.  This is a useful shortcut where separate trianing data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
-func (t *TruncatedSVD) FitTransform(mat mat64.Matrix) (*mat64.Dense, error) {
+// The returned matrix is a dense matrix type.
+func (t *TruncatedSVD) FitTransform(mat mat64.Matrix) (mat64.Matrix, error) {
 	var svd mat64.SVD
 	if ok := svd.Factorize(mat, matrix.SVDThin); !ok {
 		return nil, fmt.Errorf("Failed SVD Factorisation of working matrix")
@@ -57,16 +59,9 @@ func (t *TruncatedSVD) FitTransform(mat mat64.Matrix) (*mat64.Dense, error) {
 	m, n := mat.Dims()
 	min := minimum(t.K, m, n)
 
-	// truncate matrix to k << min(m, n)
-	uk, ok := u.Slice(0, m, 0, min).(*mat64.Dense)
-	if !ok {
-		return nil, fmt.Errorf("Failed to truncate U")
-	}
-
-	vk, ok := v.Slice(0, n, 0, min).(*mat64.Dense)
-	if !ok {
-		return nil, fmt.Errorf("Failed to truncate V")
-	}
+	// truncate U and V matrices to k << min(m, n)
+	uk := u.Slice(0, m, 0, min)
+	vk := v.Slice(0, n, 0, min)
 
 	t.transform = uk
 

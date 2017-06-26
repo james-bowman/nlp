@@ -1,6 +1,10 @@
 package nlp
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/gonum/matrix/mat64"
+)
 
 func Example() {
 	testCorpus := []string{
@@ -37,7 +41,7 @@ func Example() {
 	var matched int
 	_, docs := lsi.Dims()
 	for i := 0; i < docs; i++ {
-		similarity := CosineSimilarity(queryVector.ColView(0), lsi.ColView(i))
+		similarity := CosineSimilarity(queryVector.(*mat64.Dense).ColView(0), lsi.(*mat64.Dense).ColView(i))
 		if similarity > highestSimilarity {
 			matched = i
 			highestSimilarity = similarity

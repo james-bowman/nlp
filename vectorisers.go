@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gonum/matrix/mat64"
+	"github.com/james-bowman/sparse"
 )
 
 var (
@@ -76,9 +77,9 @@ func (v *CountVectoriser) Fit(train ...string) *CountVectoriser {
 // Transform transforms the supplied documents into a term document matrix where each
 // column is a feature vector representing one of the supplied documents.  Each element
 // represents the frequency with which the associated term for that row occured within
-// that document.
-func (v *CountVectoriser) Transform(docs ...string) (*mat64.Dense, error) {
-	mat := mat64.NewDense(len(v.Vocabulary), len(docs), nil)
+// that document.  The returned matrix is a sparse matrix type.
+func (v *CountVectoriser) Transform(docs ...string) (mat64.Matrix, error) {
+	mat := sparse.NewDOK(len(v.Vocabulary), len(docs))
 
 	for d, doc := range docs {
 		words := v.tokenise(doc)
@@ -97,7 +98,8 @@ func (v *CountVectoriser) Transform(docs ...string) (*mat64.Dense, error) {
 // FitTransform is exactly equivalent to calling Fit() followed by Transform() on the
 // same matrix.  This is a convenience where separate trianing data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
-func (v *CountVectoriser) FitTransform(docs ...string) (*mat64.Dense, error) {
+// The returned matrix is a sparse matrix type.
+func (v *CountVectoriser) FitTransform(docs ...string) (mat64.Matrix, error) {
 	return v.Fit(docs...).Transform(docs...)
 }
 
