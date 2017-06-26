@@ -16,6 +16,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 
 ## Features
 
+* Sparse matrix implementations for more effective memory usage
 * Convert plain text strings into numerical feature vectors for analysis
 * Stop word removal to remove frequently occuring English words e.g. "the", "and"
 * Term document matrix construction and manipulation
@@ -27,12 +28,13 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 ## Planned
 
 * Pipelining of transformations to simplify usage e.g. vectorisation -> tf-idf weighting -> truncated SVD
-* Stemming to treat words with common root as the same e.g. "go" and "going"
+* Ability to persist trained models.
 * Feature hashing implementation ('the hashing trick') for reduced reliance on "completeness" of training dataset
-* Querying based on centroid of queries rather than just a single query.
-* Sparse matrix implementation for more effective memory usage
 * LDA (Latent Dirichlet Allocation) implementation for topic extraction
-* Clustering algorithms e.g. K-means
+* Stemming to treat words with common root as the same e.g. "go" and "going"
+* Querying based on centroid of queries rather than just a single query.
+* Support partitioning for the Latent Semantic Index (LSI)
+* Clustering algorithms e.g. Heirachical, K-means, etc.
 * Classification algorithms e.g. SVM, random forest, etc.
 
 ## References
