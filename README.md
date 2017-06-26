@@ -16,7 +16,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 
 ## Features
 
-* Sparse matrix implementations for more effective memory usage
+* [Sparse matrix](http://github.com/james-bowman/sparse) implementations for more effective memory usage
 * Convert plain text strings into numerical feature vectors for analysis
 * Stop word removal to remove frequently occuring English words e.g. "the", "and"
 * LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI)) implementation using truncated SVD (Singular Value Decomposition) for dimensionality reduction.
