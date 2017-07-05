@@ -1,6 +1,10 @@
 package nlp
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/james-bowman/sparse"
+)
 
 var trainSet = []string{
 	"The quick brown fox jumped over the. Lazy dog",
@@ -31,7 +35,8 @@ func TestCountVectoriserFit(t *testing.T) {
 		{trainSet, true, 18},
 	}
 
-	for _, test := range tests {
+	for testRun, test := range tests {
+		t.Logf("**** Test Run %d.\n", testRun+1)
 		vectoriser := NewCountVectoriser(test.stop)
 
 		vectoriser.Fit(test.train...)
@@ -57,7 +62,9 @@ func TestCountVectoriserTransform(t *testing.T) {
 		{testSet, 19, true, testSet},
 	}
 
-	for _, test := range tests {
+	for testRun, test := range tests {
+		t.Logf("**** Test Run %d.\n", testRun+1)
+
 		vectoriser := NewCountVectoriser(test.stop)
 		vectoriser.Fit(test.train...)
 
@@ -71,6 +78,45 @@ func TestCountVectoriserTransform(t *testing.T) {
 
 		if m != test.vocabSize || n != len(test.test) {
 			t.Logf("Expected matrix %d x %d but found %d x %d", test.vocabSize, len(test.test), m, n)
+			t.Fail()
+		}
+	}
+}
+
+func TestHashingVectoriserTransform(t *testing.T) {
+	var tests = []struct {
+		train    []string
+		nnz      int
+		features int
+		stop     bool
+		test     []string
+	}{
+		{trainSet, 33, 260000, false, testSet},
+		{trainSet[0:1], 11, 260000, false, testSet[0:3]},
+		{testSet, 33, 260001, false, testSet},
+		{testSet, 21, 260000, true, testSet},
+	}
+
+	for testRun, test := range tests {
+		t.Logf("**** Test Run %d.\n", testRun+1)
+		vectoriser := NewHashingVectoriser(test.stop, test.features)
+		vectoriser.Fit(test.train...)
+
+		vec, err := vectoriser.Transform(test.test...)
+
+		if err != nil {
+			t.Errorf("Error fitting and applying vectoriser caused by %v", err)
+		}
+
+		m, n := vec.Dims()
+
+		if m != test.features || n != len(test.test) || vec.(sparse.Sparser).NNZ() != test.nnz {
+			t.Logf("Expected matrix %d x %d with NNZ = %d but found %d x %d with NNZ = %d",
+				test.features,
+				len(test.test),
+				test.nnz,
+				m, n,
+				vec.(sparse.Sparser).NNZ())
 			t.Fail()
 		}
 	}
