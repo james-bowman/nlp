@@ -13,12 +13,30 @@ var (
 	stopWords = []string{"a", "about", "above", "above", "across", "after", "afterwards", "again", "against", "all", "almost", "alone", "along", "already", "also", "although", "always", "am", "among", "amongst", "amoungst", "amount", "an", "and", "another", "any", "anyhow", "anyone", "anything", "anyway", "anywhere", "are", "around", "as", "at", "back", "be", "became", "because", "become", "becomes", "becoming", "been", "before", "beforehand", "behind", "being", "below", "beside", "besides", "between", "beyond", "bill", "both", "bottom", "but", "by", "call", "can", "cannot", "cant", "co", "con", "could", "couldnt", "cry", "de", "describe", "detail", "do", "done", "down", "due", "during", "each", "eg", "eight", "either", "eleven", "else", "elsewhere", "empty", "enough", "etc", "even", "ever", "every", "everyone", "everything", "everywhere", "except", "few", "fifteen", "fify", "fill", "find", "fire", "first", "five", "for", "former", "formerly", "forty", "found", "four", "from", "front", "full", "further", "get", "give", "go", "had", "has", "hasnt", "have", "he", "hence", "her", "here", "hereafter", "hereby", "herein", "hereupon", "hers", "herself", "him", "himself", "his", "how", "however", "hundred", "ie", "if", "in", "inc", "indeed", "interest", "into", "is", "it", "its", "itself", "keep", "last", "latter", "latterly", "least", "less", "ltd", "made", "many", "may", "me", "meanwhile", "might", "mill", "mine", "more", "moreover", "most", "mostly", "move", "much", "must", "my", "myself", "name", "namely", "neither", "never", "nevertheless", "next", "nine", "no", "nobody", "none", "noone", "nor", "not", "nothing", "now", "nowhere", "of", "off", "often", "on", "once", "one", "only", "onto", "or", "other", "others", "otherwise", "our", "ours", "ourselves", "out", "over", "own", "part", "per", "perhaps", "please", "put", "rather", "re", "same", "see", "seem", "seemed", "seeming", "seems", "serious", "several", "she", "should", "show", "side", "since", "sincere", "six", "sixty", "so", "some", "somehow", "someone", "something", "sometime", "sometimes", "somewhere", "still", "such", "system", "take", "ten", "than", "that", "the", "their", "them", "themselves", "then", "thence", "there", "thereafter", "thereby", "therefore", "therein", "thereupon", "these", "they", "thickv", "thin", "third", "this", "those", "though", "three", "through", "throughout", "thru", "thus", "to", "together", "too", "top", "toward", "towards", "twelve", "twenty", "two", "un", "under", "until", "up", "upon", "us", "very", "via", "was", "we", "well", "were", "what", "whatever", "when", "whence", "whenever", "where", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", "whether", "which", "while", "whither", "who", "whoever", "whole", "whom", "whose", "why", "will", "with", "within", "without", "would", "yet", "you", "your", "yours", "yourself", "yourselves"}
 )
 
-type Tokeniser struct {
-	wordTokeniser *regexp.Regexp
-	stopWords     map[string]bool
+// Tokeniser interface for tokenisers allowing substitution of different
+// tokenisation strategies e.g. Regexp and also supporting different
+// different token types n-grams and languages.
+type Tokeniser interface {
+	// ForEachIn iterates over each token within text and invokes function
+	// f with the token as parameter
+	ForEachIn(text string, f func(token string))
+
+	// Tokenise returns a slice of all the tokens contained in string
+	// text
+	Tokenise(text string) []string
 }
 
-func NewTokeniser(removeStopwords bool) *Tokeniser {
+// RegExpTokeniser implements Tokeniser interface using a basic RegExp
+// pattern for unary-gram word tokeniser supporting optional stop word
+// removal
+type RegExpTokeniser struct {
+	RegExp    *regexp.Regexp
+	StopWords map[string]bool
+}
+
+// NewTokeniser returns a new, default Tokeniser implementation.  If
+// removeStopwords is true then stop words will be removed from tokens
+func NewTokeniser(removeStopwords bool) Tokeniser {
 	var stop map[string]bool
 
 	if removeStopwords {
@@ -27,17 +45,20 @@ func NewTokeniser(removeStopwords bool) *Tokeniser {
 			stop[word] = true
 		}
 	}
-	return &Tokeniser{
-		wordTokeniser: regexp.MustCompile("\\w+"),
-		stopWords:     stop,
+	return &RegExpTokeniser{
+		RegExp:    regexp.MustCompile("\\w+"),
+		StopWords: stop,
 	}
 }
 
-func (t *Tokeniser) ForEachIn(text string, f func(token string)) {
-	tokens := t.Tokenise(text)
+// ForEachIn iterates over each token within text and invokes function
+// f with the token as parameter.  If StopWords is not nil then any
+// tokens from text present in StopWords will be ignored.
+func (t *RegExpTokeniser) ForEachIn(text string, f func(token string)) {
+	tokens := t.tokenise(text)
 	for _, token := range tokens {
-		if t.stopWords != nil {
-			if t.stopWords[token] {
+		if t.StopWords != nil {
+			if t.StopWords[token] {
 				continue
 			}
 		}
@@ -45,12 +66,33 @@ func (t *Tokeniser) ForEachIn(text string, f func(token string)) {
 	}
 }
 
-func (t *Tokeniser) Tokenise(text string) []string {
+// Tokenise returns a slice of all the tokens contained in string
+// text.  If StopWords is not nil then any tokens from text present in
+// StopWords will be removed from the slice.
+func (t *RegExpTokeniser) Tokenise(text string) []string {
+	words := t.tokenise(text)
+
+	// filter out stop words
+	if t.StopWords != nil {
+		b := words[:0]
+		for _, w := range words {
+			if !t.StopWords[w] {
+				b = append(b, w)
+			}
+		}
+	}
+
+	return words
+}
+
+// tokenise returns a slice of all the tokens contained in string
+// text.
+func (t *RegExpTokeniser) tokenise(text string) []string {
 	// convert content to lower case
 	c := strings.ToLower(text)
 
 	// match whole words, removing any punctuation/whitespace
-	words := t.wordTokeniser.FindAllString(c, -1)
+	words := t.RegExp.FindAllString(c, -1)
 
 	return words
 }
@@ -69,7 +111,9 @@ type CountVectoriser struct {
 	// training data set supplied to Fit() will not have an entry in the Vocabulary
 	// and will be ignored.
 	Vocabulary map[string]int
-	tokeniser  *Tokeniser
+
+	// Tokeniser is used to tokenise input text into features.
+	Tokeniser Tokeniser
 }
 
 // NewCountVectoriser creates a new CountVectoriser.  If removeStopwords is true then
@@ -77,7 +121,7 @@ type CountVectoriser struct {
 func NewCountVectoriser(removeStopwords bool) *CountVectoriser {
 	return &CountVectoriser{
 		Vocabulary: make(map[string]int),
-		tokeniser:  NewTokeniser(removeStopwords),
+		Tokeniser:  NewTokeniser(removeStopwords),
 	}
 }
 
@@ -87,7 +131,7 @@ func NewCountVectoriser(removeStopwords bool) *CountVectoriser {
 func (v *CountVectoriser) Fit(train ...string) *CountVectoriser {
 	i := 0
 	for _, doc := range train {
-		v.tokeniser.ForEachIn(doc, func(word string) {
+		v.Tokeniser.ForEachIn(doc, func(word string) {
 			_, exists := v.Vocabulary[word]
 			if !exists {
 				v.Vocabulary[word] = i
@@ -107,7 +151,7 @@ func (v *CountVectoriser) Transform(docs ...string) (mat64.Matrix, error) {
 	mat := sparse.NewDOK(len(v.Vocabulary), len(docs))
 
 	for d, doc := range docs {
-		v.tokeniser.ForEachIn(doc, func(word string) {
+		v.Tokeniser.ForEachIn(doc, func(word string) {
 			i, exists := v.Vocabulary[word]
 
 			if exists {
@@ -133,7 +177,7 @@ func (v *CountVectoriser) FitTransform(docs ...string) (mat64.Matrix, error) {
 // appears 5 times in the document d.
 type HashingVectoriser struct {
 	NumFeatures int
-	tokeniser   *Tokeniser
+	Tokeniser   Tokeniser
 }
 
 // NewHashingVectoriser creates a new HashingVectoriser.  If removeStopwords is true then
@@ -144,7 +188,7 @@ type HashingVectoriser struct {
 func NewHashingVectoriser(removeStopwords bool, numFeatures int) *HashingVectoriser {
 	return &HashingVectoriser{
 		NumFeatures: numFeatures,
-		tokeniser:   NewTokeniser(removeStopwords),
+		Tokeniser:   NewTokeniser(removeStopwords),
 	}
 }
 
@@ -166,7 +210,7 @@ func (v *HashingVectoriser) Transform(docs ...string) (mat64.Matrix, error) {
 	mat := sparse.NewDOK(v.NumFeatures, len(docs))
 
 	for d, doc := range docs {
-		v.tokeniser.ForEachIn(doc, func(word string) {
+		v.Tokeniser.ForEachIn(doc, func(word string) {
 			h := murmur3.Sum32([]byte(word))
 			i := int(h) % v.NumFeatures
 
