@@ -80,6 +80,7 @@ func (t *RegExpTokeniser) Tokenise(text string) []string {
 				b = append(b, w)
 			}
 		}
+		return b
 	}
 
 	return words
