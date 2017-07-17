@@ -11,7 +11,12 @@ import (
 // This produces an approximation of the input matrix at a lower rank.  This is a core
 // component of LSA (Latent Semantic Analsis)
 type TruncatedSVD struct {
-	transform mat64.Matrix
+	// Components is the truncated term matrix (matrix U of the Singular Value Decomposition
+	// (A=USV^T)).  The matrix will be of size m, k where m = the number of unique terms
+	// in the training data and k = the number of elements to truncate to (specified by
+	// attribute K) or m or n (the number of documents in the training data) whichever of
+	// the 3 values is smaller.
+	Components mat64.Matrix
 
 	// K is the number of dimensions to which the output, transformed, matrix should be
 	// truncated to.  The matrix output by the FitTransform() and Transform() methods will
@@ -40,7 +45,7 @@ func (t *TruncatedSVD) Fit(mat mat64.Matrix) Transformer {
 func (t *TruncatedSVD) Transform(mat mat64.Matrix) (mat64.Matrix, error) {
 	var product mat64.Dense
 
-	product.Product(t.transform.T(), mat)
+	product.Mul(t.Components.T(), mat)
 
 	return &product, nil
 }
@@ -63,7 +68,7 @@ func (t *TruncatedSVD) FitTransform(mat mat64.Matrix) (mat64.Matrix, error) {
 	uk := u.Slice(0, m, 0, min)
 	vk := v.Slice(0, n, 0, min)
 
-	t.transform = uk
+	t.Components = uk
 
 	// multiply Sigma by transpose of V.  As sigma is a symmetrical (square) diagonal matrix it is
 	// more efficient to simply multiply each element from the array of diagonal values with each
