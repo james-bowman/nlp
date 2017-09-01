@@ -17,7 +17,7 @@ type Comparer func(a, b mat.Vector) float64
 func CosineSimilarity(a, b mat.Vector) float64 {
 	// Cosine angle between two vectors is equal to their dot product divided by
 	// the product of their norms
-	dotProduct := mat.Dot(a.(*mat.VecDense), b.(*mat.VecDense))
+	dotProduct := mat.Dot(a, b)
 	norma := mat.Norm(a, 2.0)
 	normb := mat.Norm(b, 2.0)
 
