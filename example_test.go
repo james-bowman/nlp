@@ -3,7 +3,7 @@ package nlp
 import (
 	"fmt"
 
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 )
 
 func Example() {
@@ -24,15 +24,15 @@ func Example() {
 	reducer := NewTruncatedSVD(4)
 
 	// Transform the corpus into an LSI fitting the model to the documents in the process
-	mat, _ := vectoriser.FitTransform(testCorpus...)
-	mat, _ = transformer.FitTransform(mat)
-	lsi, _ := reducer.FitTransform(mat)
+	matrix, _ := vectoriser.FitTransform(testCorpus...)
+	matrix, _ = transformer.FitTransform(matrix)
+	lsi, _ := reducer.FitTransform(matrix)
 
 	// run the query through the same pipeline that was fitted to the corpus and
 	// to project it into the same dimensional space
-	mat, _ = vectoriser.Transform(query)
-	mat, _ = transformer.Transform(mat)
-	queryVector, _ := reducer.Transform(mat)
+	matrix, _ = vectoriser.Transform(query)
+	matrix, _ = transformer.Transform(matrix)
+	queryVector, _ := reducer.Transform(matrix)
 
 	// iterate over document feature vectors (columns) in the LSI and compare with the
 	// query vector for similarity.  Similarity is determined by the difference between
@@ -41,7 +41,7 @@ func Example() {
 	var matched int
 	_, docs := lsi.Dims()
 	for i := 0; i < docs; i++ {
-		similarity := CosineSimilarity(queryVector.(*mat64.Dense).ColView(0), lsi.(*mat64.Dense).ColView(i))
+		similarity := CosineSimilarity(queryVector.(mat.ColViewer).ColView(0), lsi.(mat.ColViewer).ColView(i))
 		if similarity > highestSimilarity {
 			matched = i
 			highestSimilarity = similarity

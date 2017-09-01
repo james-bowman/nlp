@@ -3,7 +3,7 @@ package nlp
 import (
 	"testing"
 
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 )
 
 func TestTruncatedSVDFitTransform(t *testing.T) {
@@ -37,8 +37,8 @@ func TestTruncatedSVDFitTransform(t *testing.T) {
 
 	for _, test := range tests {
 		transformer := NewTruncatedSVD(test.k)
-		input := mat64.NewDense(test.m, test.n, test.input)
-		expResult := mat64.NewDense(test.r, test.c, test.result)
+		input := mat.NewDense(test.m, test.n, test.input)
+		expResult := mat.NewDense(test.r, test.c, test.result)
 
 		result, err := transformer.FitTransform(input)
 
@@ -46,10 +46,10 @@ func TestTruncatedSVDFitTransform(t *testing.T) {
 			t.Errorf("Failed Truncated SVD transform caused by %v", err)
 		}
 
-		if !mat64.EqualApprox(expResult, result, 0.01) {
+		if !mat.EqualApprox(expResult, result, 0.01) {
 			t.Logf("Expected matrix: \n%v\n but found: \n%v\n",
-				mat64.Formatted(expResult),
-				mat64.Formatted(result))
+				mat.Formatted(expResult),
+				mat.Formatted(result))
 			t.Fail()
 		}
 
@@ -59,10 +59,10 @@ func TestTruncatedSVDFitTransform(t *testing.T) {
 			t.Errorf("Failed Truncated SVD transform caused by %v", err)
 		}
 
-		if !mat64.EqualApprox(result, result2, 0.001) {
+		if !mat.EqualApprox(result, result2, 0.001) {
 			t.Logf("First matrix: \n%v\n but second matrix: \n%v\n",
-				mat64.Formatted(result),
-				mat64.Formatted(result2))
+				mat.Formatted(result),
+				mat.Formatted(result2))
 			t.Fail()
 		}
 	}

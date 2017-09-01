@@ -3,8 +3,7 @@ package nlp
 import (
 	"fmt"
 
-	"github.com/gonum/matrix"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 )
 
 // TruncatedSVD implements the Singular Value Decomposition factorisation of matrices.
@@ -16,7 +15,7 @@ type TruncatedSVD struct {
 	// in the training data and k = the number of elements to truncate to (specified by
 	// attribute K) or m or n (the number of documents in the training data) whichever of
 	// the 3 values is smaller.
-	Components mat64.Matrix
+	Components mat.Matrix
 
 	// K is the number of dimensions to which the output, transformed, matrix should be
 	// truncated to.  The matrix output by the FitTransform() and Transform() methods will
@@ -34,7 +33,7 @@ func NewTruncatedSVD(k int) *TruncatedSVD {
 
 // Fit performs the SVD factorisation on the input training data matrix, mat and
 // stores the output term matrix as a transform to apply to matrices in the Transform matrix.
-func (t *TruncatedSVD) Fit(mat mat64.Matrix) Transformer {
+func (t *TruncatedSVD) Fit(mat mat.Matrix) Transformer {
 	t.FitTransform(mat)
 	return t
 }
@@ -42,10 +41,10 @@ func (t *TruncatedSVD) Fit(mat mat64.Matrix) Transformer {
 // Transform applies the transform decomposed from the training data matrix in Fit()
 // to the input matrix.  The resulting output matrix will be the closest approximation
 // to the input matrix at a reduced rank.  The returned matrix is a dense matrix type.
-func (t *TruncatedSVD) Transform(mat mat64.Matrix) (mat64.Matrix, error) {
-	var product mat64.Dense
+func (t *TruncatedSVD) Transform(m mat.Matrix) (mat.Matrix, error) {
+	var product mat.Dense
 
-	product.Mul(t.Components.T(), mat)
+	product.Mul(t.Components.T(), m)
 
 	return &product, nil
 }
@@ -54,26 +53,26 @@ func (t *TruncatedSVD) Transform(mat mat64.Matrix) (mat64.Matrix, error) {
 // on the same matrix.  This is a useful shortcut where separate trianing data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 // The returned matrix is a dense matrix type.
-func (t *TruncatedSVD) FitTransform(mat mat64.Matrix) (mat64.Matrix, error) {
-	var svd mat64.SVD
-	if ok := svd.Factorize(mat, matrix.SVDThin); !ok {
+func (t *TruncatedSVD) FitTransform(m mat.Matrix) (mat.Matrix, error) {
+	var svd mat.SVD
+	if ok := svd.Factorize(m, mat.SVDThin); !ok {
 		return nil, fmt.Errorf("Failed SVD Factorisation of working matrix")
 	}
 	s, u, v := t.extractSVD(&svd)
 
-	m, n := mat.Dims()
-	min := minimum(t.K, m, n)
+	r, c := m.Dims()
+	min := minimum(t.K, r, c)
 
 	// truncate U and V matrices to k << min(m, n)
-	uk := u.Slice(0, m, 0, min)
-	vk := v.Slice(0, n, 0, min)
+	uk := u.Slice(0, r, 0, min)
+	vk := v.Slice(0, c, 0, min)
 
 	t.Components = uk
 
 	// multiply Sigma by transpose of V.  As sigma is a symmetrical (square) diagonal matrix it is
 	// more efficient to simply multiply each element from the array of diagonal values with each
 	// element from the matrix V rather than multiplying out the non-zero values from off the diagonal.
-	var product mat64.Dense
+	var product mat.Dense
 	product.Apply(func(i, j int, v float64) float64 {
 		return (v * s[i])
 	}, vk.T())
@@ -92,10 +91,10 @@ func min(m, n int) int {
 	return n
 }
 
-func (t *TruncatedSVD) extractSVD(svd *mat64.SVD) (s []float64, u, v *mat64.Dense) {
-	var um, vm mat64.Dense
-	um.UFromSVD(svd)
-	vm.VFromSVD(svd)
+func (t *TruncatedSVD) extractSVD(svd *mat.SVD) (s []float64, u, v *mat.Dense) {
+	var um, vm mat.Dense
+	svd.UTo(&um)
+	svd.VTo(&vm)
 	s = svd.Values(nil)
 	return s, &um, &vm
 }

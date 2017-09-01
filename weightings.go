@@ -3,15 +3,15 @@ package nlp
 import (
 	"math"
 
-	"github.com/gonum/matrix/mat64"
 	"github.com/james-bowman/sparse"
+	"gonum.org/v1/gonum/mat"
 )
 
 // Transformer provides a common interface for transformer steps.
 type Transformer interface {
-	Fit(mat64.Matrix) Transformer
-	Transform(mat mat64.Matrix) (mat64.Matrix, error)
-	FitTransform(mat mat64.Matrix) (mat64.Matrix, error)
+	Fit(mat.Matrix) Transformer
+	Transform(mat mat.Matrix) (mat.Matrix, error)
+	FitTransform(mat mat.Matrix) (mat.Matrix, error)
 }
 
 // TfidfTransformer takes a raw term document matrix and weights each raw term frequency
@@ -24,7 +24,7 @@ type Transformer interface {
 // term occurs and n is the total number of documents within the corpus.  We add 1 to both n
 // and df before division to prevent division by zero.
 type TfidfTransformer struct {
-	transform mat64.Matrix
+	transform mat.Matrix
 }
 
 // NewTfidfTransformer constructs a new TfidfTransformer.
@@ -35,7 +35,7 @@ func NewTfidfTransformer() *TfidfTransformer {
 // Fit takes a training term document matrix, counts term occurances across all documents
 // and constructs an inverse document frequency transform to apply to matrices in subsequent
 // calls to Transform().
-func (t *TfidfTransformer) Fit(mat mat64.Matrix) Transformer {
+func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
 	m, n := mat.Dims()
 
 	weights := make([]float64, m)
@@ -69,7 +69,7 @@ func (t *TfidfTransformer) Fit(mat mat64.Matrix) Transformer {
 // each term frequency according to how often it appears across the whole document corpus
 // so that naturally frequent occuring words are given less weight than uncommon ones.
 // The returned matrix is a sparse matrix type.
-func (t *TfidfTransformer) Transform(mat mat64.Matrix) (mat64.Matrix, error) {
+func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
 	product := &sparse.CSR{}
 
 	// simply multiply the matrix by our idf transform (the diagonal matrix of term weights)
@@ -85,6 +85,6 @@ func (t *TfidfTransformer) Transform(mat mat64.Matrix) (mat64.Matrix, error) {
 // same matrix.  This is a convenience where separate trianing data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 // The returned matrix is a sparse matrix type.
-func (t *TfidfTransformer) FitTransform(mat mat64.Matrix) (mat64.Matrix, error) {
+func (t *TfidfTransformer) FitTransform(mat mat.Matrix) (mat.Matrix, error) {
 	return t.Fit(mat).Transform(mat)
 }

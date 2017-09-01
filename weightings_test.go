@@ -3,8 +3,8 @@ package nlp
 import (
 	"testing"
 
-	"github.com/gonum/matrix/mat64"
 	"github.com/james-bowman/sparse"
+	"gonum.org/v1/gonum/mat"
 )
 
 func TestTfidfTransformerFit(t *testing.T) {
@@ -39,7 +39,7 @@ func TestTfidfTransformerFit(t *testing.T) {
 
 	for _, test := range tests {
 		transformer := NewTfidfTransformer()
-		input := mat64.NewDense(test.m, test.n, test.input)
+		input := mat.NewDense(test.m, test.n, test.input)
 
 		transformer.Fit(input)
 
@@ -87,8 +87,8 @@ func TestTfidfTransformerTransform(t *testing.T) {
 
 	for _, test := range tests {
 		transformer := NewTfidfTransformer()
-		input := mat64.NewDense(test.m, test.n, test.input)
-		output := mat64.NewDense(test.tm, test.tn, test.output)
+		input := mat.NewDense(test.m, test.n, test.input)
+		output := mat.NewDense(test.tm, test.tn, test.output)
 
 		result, err := transformer.FitTransform(input)
 
@@ -96,10 +96,10 @@ func TestTfidfTransformerTransform(t *testing.T) {
 			t.Errorf("Failed tfidf fit transform caused by %v", err)
 		}
 
-		if !mat64.EqualApprox(output, result, 0.001) {
+		if !mat.EqualApprox(output, result, 0.001) {
 			t.Logf("Expected matrix: \n%v\n but found: \n%v\n",
-				mat64.Formatted(output),
-				mat64.Formatted(result))
+				mat.Formatted(output),
+				mat.Formatted(result))
 			t.Fail()
 		}
 
@@ -110,17 +110,17 @@ func TestTfidfTransformerTransform(t *testing.T) {
 			t.Errorf("Failed tfidf fit transform caused by %v", err)
 		}
 
-		if !mat64.Equal(result, result2) {
+		if !mat.Equal(result, result2) {
 			t.Logf("Expected matrix: \n%v\n but found: \n%v\n",
-				mat64.Formatted(result),
-				mat64.Formatted(result2))
+				mat.Formatted(result),
+				mat.Formatted(result2))
 			t.Fail()
 		}
 	}
 }
 
 func benchmarkTFIDFFitTransform(t Transformer, m, n int, b *testing.B) {
-	mat := mat64.NewDense(m, n, nil)
+	mat := mat.NewDense(m, n, nil)
 
 	for n := 0; n < b.N; n++ {
 		t.FitTransform(mat)

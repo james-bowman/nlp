@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gonum/matrix/mat64"
 	"github.com/james-bowman/sparse"
 	"github.com/spaolacci/murmur3"
+	"gonum.org/v1/gonum/mat"
 )
 
 var (
@@ -148,7 +148,7 @@ func (v *CountVectoriser) Fit(train ...string) *CountVectoriser {
 // column is a feature vector representing one of the supplied documents.  Each element
 // represents the frequency with which the associated term for that row occured within
 // that document.  The returned matrix is a sparse matrix type.
-func (v *CountVectoriser) Transform(docs ...string) (mat64.Matrix, error) {
+func (v *CountVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 	mat := sparse.NewDOK(len(v.Vocabulary), len(docs))
 
 	for d, doc := range docs {
@@ -167,7 +167,7 @@ func (v *CountVectoriser) Transform(docs ...string) (mat64.Matrix, error) {
 // same matrix.  This is a convenience where separate trianing data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 // The returned matrix is a sparse matrix type.
-func (v *CountVectoriser) FitTransform(docs ...string) (mat64.Matrix, error) {
+func (v *CountVectoriser) FitTransform(docs ...string) (mat.Matrix, error) {
 	return v.Fit(docs...).Transform(docs...)
 }
 
@@ -207,7 +207,7 @@ func (v *HashingVectoriser) Fit(train ...string) *HashingVectoriser {
 // column is a feature vector representing one of the supplied documents.  Each element
 // represents the frequency with which the associated term for that row occured within
 // that document.  The returned matrix is a sparse matrix type.
-func (v *HashingVectoriser) Transform(docs ...string) (mat64.Matrix, error) {
+func (v *HashingVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 	mat := sparse.NewDOK(v.NumFeatures, len(docs))
 
 	for d, doc := range docs {
@@ -228,6 +228,6 @@ func (v *HashingVectoriser) Transform(docs ...string) (mat64.Matrix, error) {
 // not required and so this method is exactly equivalent to Transform().  As with
 // Fit(), this method is included with the HashingVectoriser for compatibility
 // with other vectorisers.  The returned matrix is a sparse matrix type.
-func (v *HashingVectoriser) FitTransform(docs ...string) (mat64.Matrix, error) {
+func (v *HashingVectoriser) FitTransform(docs ...string) (mat.Matrix, error) {
 	return v.Transform(docs...)
 }

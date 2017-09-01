@@ -8,7 +8,7 @@
 
 An implementation of selected machine learning algorithms for basic natural language processing in golang.  The initial focus for this project is [Latent Semantic Analysis](https://en.wikipedia.org/wiki/Latent_semantic_analysis) to allow retrieval/searching, clustering and classification of text documents based upon semantic content.
 
-Built upon [gonum/matrix](https://github.com/gonum/matrix) with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/).
+Built upon the [gonum/gonum matrix library](https://github.com/gonum/gonum) with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/).
 
 Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-analysis-of-webpages-with-machine-learning-in-go/) or [the go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
 
