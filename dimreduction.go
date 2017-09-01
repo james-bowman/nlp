@@ -50,7 +50,7 @@ func (t *TruncatedSVD) Transform(m mat.Matrix) (mat.Matrix, error) {
 }
 
 // FitTransform is approximately equivalent to calling Fit() followed by Transform()
-// on the same matrix.  This is a useful shortcut where separate trianing data is not being
+// on the same matrix.  This is a useful shortcut where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 // The returned matrix is a dense matrix type.
 func (t *TruncatedSVD) FitTransform(m mat.Matrix) (mat.Matrix, error) {

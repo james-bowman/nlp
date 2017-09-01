@@ -107,7 +107,7 @@ type CountVectoriser struct {
 	// Vocabulary is a map of words to indices that point to the row number representing
 	// that word in the term document matrix output from the Transform() and FitTransform()
 	// methods.  The Vocabulary map is populated by the Fit() or FitTransform() methods
-	// based upon the words occuring in the datasets supplied to those methods.  Within
+	// based upon the words occurring in the datasets supplied to those methods.  Within
 	// Transform(), any words found in the test data set that were not present in the
 	// training data set supplied to Fit() will not have an entry in the Vocabulary
 	// and will be ignored.
@@ -146,7 +146,7 @@ func (v *CountVectoriser) Fit(train ...string) *CountVectoriser {
 
 // Transform transforms the supplied documents into a term document matrix where each
 // column is a feature vector representing one of the supplied documents.  Each element
-// represents the frequency with which the associated term for that row occured within
+// represents the frequency with which the associated term for that row occurred within
 // that document.  The returned matrix is a sparse matrix type.
 func (v *CountVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 	mat := sparse.NewDOK(len(v.Vocabulary), len(docs))
@@ -164,7 +164,7 @@ func (v *CountVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 }
 
 // FitTransform is exactly equivalent to calling Fit() followed by Transform() on the
-// same matrix.  This is a convenience where separate trianing data is not being
+// same matrix.  This is a convenience where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 // The returned matrix is a sparse matrix type.
 func (v *CountVectoriser) FitTransform(docs ...string) (mat.Matrix, error) {
@@ -205,7 +205,7 @@ func (v *HashingVectoriser) Fit(train ...string) *HashingVectoriser {
 
 // Transform transforms the supplied documents into a term document matrix where each
 // column is a feature vector representing one of the supplied documents.  Each element
-// represents the frequency with which the associated term for that row occured within
+// represents the frequency with which the associated term for that row occurred within
 // that document.  The returned matrix is a sparse matrix type.
 func (v *HashingVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 	mat := sparse.NewDOK(v.NumFeatures, len(docs))

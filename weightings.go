@@ -16,7 +16,7 @@ type Transformer interface {
 
 // TfidfTransformer takes a raw term document matrix and weights each raw term frequency
 // value depending upon how commonly it occurs across all documents within the corpus.
-// For example a very commonly occuring word like `the` is likely to occur in all documents
+// For example a very commonly occurring word like `the` is likely to occur in all documents
 // and so would be weighted down.
 // More precisely, TfidfTransformer applies a tf-idf algorithm to the matrix where each
 // term frequency is multiplied by the inverse document frequency.  Inverse document
@@ -32,7 +32,7 @@ func NewTfidfTransformer() *TfidfTransformer {
 	return &TfidfTransformer{}
 }
 
-// Fit takes a training term document matrix, counts term occurances across all documents
+// Fit takes a training term document matrix, counts term occurrences across all documents
 // and constructs an inverse document frequency transform to apply to matrices in subsequent
 // calls to Transform().
 func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
@@ -67,7 +67,7 @@ func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
 // Transform applies the inverse document frequency (IDF) transform by multiplying
 // each term frequency by its corresponding IDF value.  This has the effect of weighting
 // each term frequency according to how often it appears across the whole document corpus
-// so that naturally frequent occuring words are given less weight than uncommon ones.
+// so that naturally frequent occurring words are given less weight than uncommon ones.
 // The returned matrix is a sparse matrix type.
 func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
 	product := &sparse.CSR{}
@@ -82,7 +82,7 @@ func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
 }
 
 // FitTransform is exactly equivalent to calling Fit() followed by Transform() on the
-// same matrix.  This is a convenience where separate trianing data is not being
+// same matrix.  This is a convenience where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 // The returned matrix is a sparse matrix type.
 func (t *TfidfTransformer) FitTransform(mat mat.Matrix) (mat.Matrix, error) {
