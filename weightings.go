@@ -70,7 +70,7 @@ func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
 // so that naturally frequent occurring words are given less weight than uncommon ones.
 // The returned matrix is a sparse matrix type.
 func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
-	product := &sparse.CSR{}
+	var product sparse.CSR
 
 	// simply multiply the matrix by our idf transform (the diagonal matrix of term weights)
 	product.Mul(t.transform, mat)
@@ -78,7 +78,7 @@ func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
 	// todo: possibly L2 norm matrix to remove any bias caused by documents of different
 	// lengths where longer documents naturally have more words and so higher word counts
 
-	return product, nil
+	return &product, nil
 }
 
 // FitTransform is exactly equivalent to calling Fit() followed by Transform() on the
