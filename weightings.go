@@ -59,7 +59,7 @@ func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
 
 	// build a diagonal matrix from array of term weighting values for subsequent
 	// multiplication with term document matrics
-	t.transform = sparse.NewDIA(m, weights)
+	t.transform = sparse.NewDIA(m, m, weights)
 
 	return t
 }
