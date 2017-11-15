@@ -2,7 +2,7 @@ package nlp
 
 import (
 	"math"
-
+	"io"
 	"github.com/james-bowman/sparse"
 	"gonum.org/v1/gonum/mat"
 )
@@ -24,7 +24,7 @@ type Transformer interface {
 // term occurs and n is the total number of documents within the corpus.  We add 1 to both n
 // and df before division to prevent division by zero.
 type TfidfTransformer struct {
-	transform mat.Matrix
+	transform *sparse.DIA
 }
 
 // NewTfidfTransformer constructs a new TfidfTransformer.
@@ -87,4 +87,28 @@ func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
 // The returned matrix is a sparse matrix type.
 func (t *TfidfTransformer) FitTransform(mat mat.Matrix) (mat.Matrix, error) {
 	return t.Fit(mat).Transform(mat)
+}
+
+// Save binary serialises the model and writes it into w.  This is useful for persisting
+// a trained model to disk so that it may be loaded (using the Load() method)in another 
+// context (e.g. production) for reproducable results.
+func (t TfidfTransformer) Save(w io.Writer) error {
+	_, err := t.transform.MarshalBinaryTo(w)
+		
+	return err
+}
+
+// Load binary deserialises the previously serialised model into the receiver.  This is
+// useful for loading a previously trained and saved model from another context 
+// (e.g. offline training) for use within another context (e.g. production) for 
+// reproducable results.  Load should only be performed with trusted data.
+func (t *TfidfTransformer) Load(r io.Reader) error {
+	var model sparse.DIA
+
+	if _, err := model.UnmarshalBinaryFrom(r); err != nil {
+		return err
+	}
+	t.transform = &model
+
+	return nil
 }

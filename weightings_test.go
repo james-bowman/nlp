@@ -2,6 +2,7 @@ package nlp
 
 import (
 	"testing"
+	"bytes"
 
 	"github.com/james-bowman/sparse"
 	"gonum.org/v1/gonum/mat"
@@ -43,7 +44,7 @@ func TestTfidfTransformerFit(t *testing.T) {
 
 		transformer.Fit(input)
 
-		weights := transformer.transform.(*sparse.DIA).Diagonal()
+		weights := transformer.transform.Diagonal()
 		for i, v := range weights {
 			if v != test.transform[i] {
 				t.Logf("Expected weights: \n%v\n but found: \n%v\n",
@@ -114,6 +115,40 @@ func TestTfidfTransformerTransform(t *testing.T) {
 			t.Logf("Expected matrix: \n%v\n but found: \n%v\n",
 				mat.Formatted(result),
 				mat.Formatted(result2))
+			t.Fail()
+		}
+	}
+}
+
+func TestTfidfTransformerSaveLoad(t *testing.T) {
+	var transforms = []struct {
+		wantedTransform *sparse.DIA
+	}{
+		{
+			wantedTransform: sparse.NewDIA(2, 2, []float64{1, 5}),
+		},
+	}
+
+	for ti, test := range transforms {
+		t.Logf("**** TestTfidfTransformerSave - Test Run %d.\n", ti+1)
+
+		a := NewTfidfTransformer()
+		a.transform = test.wantedTransform
+		
+		buf := new(bytes.Buffer)
+		if err := a.Save(buf); err != nil {
+			t.Errorf("Error encoding: %v\n", err)
+			continue
+		}
+
+		b := NewTfidfTransformer()
+		if err := b.Load(buf); err != nil {
+			t.Errorf("Error unencoding: %v\n", err)
+			continue
+		}
+
+		if !mat.Equal(a.transform, b.transform) {
+			t.Logf("Wanted %v but got %v\n", mat.Formatted(a.transform), mat.Formatted(b.transform))
 			t.Fail()
 		}
 	}

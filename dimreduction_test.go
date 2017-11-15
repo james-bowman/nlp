@@ -2,7 +2,7 @@ package nlp
 
 import (
 	"testing"
-
+	"bytes"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -63,6 +63,49 @@ func TestTruncatedSVDFitTransform(t *testing.T) {
 			t.Logf("First matrix: \n%v\n but second matrix: \n%v\n",
 				mat.Formatted(result),
 				mat.Formatted(result2))
+			t.Fail()
+		}
+	}
+}
+
+func TestTruncatedSVDSaveLoad(t *testing.T) {
+	var transforms = []struct {
+		wanted *TruncatedSVD
+	}{
+		{
+			wanted: &TruncatedSVD{
+				Components: mat.NewDense(4, 2, []float64{
+					1, 5,
+					3, 2,
+					9, 0,
+					8, 4,
+				}),
+				K: 2,
+			},
+		},
+	}
+
+	for ti, test := range transforms {
+		t.Logf("**** TestTruncatedSVDSaveLoad - Test Run %d.\n", ti+1)
+
+		buf := new(bytes.Buffer)
+		if err := test.wanted.Save(buf); err != nil {
+			t.Errorf("Error encoding: %v\n", err)
+			continue
+		}
+
+		var b TruncatedSVD
+		if err := b.Load(buf); err != nil {
+			t.Errorf("Error unencoding: %v\n", err)
+			continue
+		}
+
+		if !mat.Equal(test.wanted.Components, b.Components) {
+			t.Logf("Components mismatch: Wanted %v but got %v\n", mat.Formatted(test.wanted.Components), mat.Formatted(b.Components))
+			t.Fail()
+		}
+		if test.wanted.K != b.K {
+			t.Logf("K value mismatch: Wanted %d but got %d\n", test.wanted.K, b.K)
 			t.Fail()
 		}
 	}

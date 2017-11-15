@@ -2,7 +2,8 @@ package nlp
 
 import (
 	"fmt"
-
+	"io"
+	"encoding/binary"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -15,7 +16,7 @@ type TruncatedSVD struct {
 	// in the training data and k = the number of elements to truncate to (specified by
 	// attribute K) or m or n (the number of documents in the training data) whichever of
 	// the 3 values is smaller.
-	Components mat.Matrix
+	Components *mat.Dense
 
 	// K is the number of dimensions to which the output, transformed, matrix should be
 	// truncated to.  The matrix output by the FitTransform() and Transform() methods will
@@ -67,7 +68,7 @@ func (t *TruncatedSVD) FitTransform(m mat.Matrix) (mat.Matrix, error) {
 	uk := u.Slice(0, r, 0, min)
 	vk := v.Slice(0, c, 0, min)
 
-	t.Components = uk
+	t.Components = uk.(*mat.Dense)
 
 	// multiply Sigma by transpose of V.  As sigma is a symmetrical (square) diagonal matrix it is
 	// more efficient to simply multiply each element from the array of diagonal values with each
@@ -97,4 +98,51 @@ func (t *TruncatedSVD) extractSVD(svd *mat.SVD) (s []float64, u, v *mat.Dense) {
 	svd.VTo(&vm)
 	s = svd.Values(nil)
 	return s, &um, &vm
+}
+
+// Save binary serialises the model and writes it into w.  This is useful for persisting
+// a trained model to disk so that it may be loaded (using the Load() method)in another 
+// context (e.g. production) for reproducable results.
+func (t TruncatedSVD) Save(w io.Writer) error {
+	var buf [8]byte
+	binary.LittleEndian.PutUint64(buf[:], uint64(t.K))
+	if _, err := w.Write(buf[:]); err != nil {
+		return err
+	}
+	
+	_, err := t.Components.MarshalBinaryTo(w)
+		
+	return err
+}
+
+// Load binary deserialises the previously serialised model into the receiver.  This is
+// useful for loading a previously trained and saved model from another context 
+// (e.g. offline training) for use within another context (e.g. production) for 
+// reproducable results.  Load should only be performed with trusted data.
+func (t *TruncatedSVD) Load(r io.Reader) error {
+	var n   int
+	var buf [8]byte
+	var err error
+	for n < len(buf) && err == nil {
+		var nn int
+		nn, err = r.Read(buf[n:])
+		n += nn
+	}
+	if err == io.EOF {
+		return io.ErrUnexpectedEOF
+	}
+	if err != nil {
+		return err
+	}
+	k := int(binary.LittleEndian.Uint64(buf[:]))
+
+	var model mat.Dense
+	if _, err := model.UnmarshalBinaryFrom(r); err != nil {
+		return err
+	}
+
+	t.K = k
+	t.Components = &model
+
+	return nil
 }

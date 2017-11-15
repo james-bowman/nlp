@@ -25,11 +25,12 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 * TF-IDF weighting to account for frequently occuring words
 * LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI)) implementation using truncated SVD (Singular Value Decomposition) for dimensionality reduction.
 * Cosine similarity implementation to calculate the similarity (measured in terms of difference in angles) between feature vectors.
+* Persistence for trained models (persistence for Vectorisers coming soon)
 
 ## Planned
 
 * Pipelining of transformations to simplify usage e.g. vectorisation -> tf-idf weighting -> truncated SVD
-* Ability to persist trained models
+* Ability to persist trained vectorisers
 * LDA (Latent Dirichlet Allocation) implementation for topic extraction
 * Stemming to treat words with common root as the same e.g. "go" and "going"
 * Querying based on multiple query strings (using their centroid) rather than just a single query string.
