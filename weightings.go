@@ -1,18 +1,12 @@
 package nlp
 
 import (
-	"math"
 	"io"
+	"math"
+
 	"github.com/james-bowman/sparse"
 	"gonum.org/v1/gonum/mat"
 )
-
-// Transformer provides a common interface for transformer steps.
-type Transformer interface {
-	Fit(mat.Matrix) Transformer
-	Transform(mat mat.Matrix) (mat.Matrix, error)
-	FitTransform(mat mat.Matrix) (mat.Matrix, error)
-}
 
 // TfidfTransformer takes a raw term document matrix and weights each raw term frequency
 // value depending upon how commonly it occurs across all documents within the corpus.
@@ -90,17 +84,17 @@ func (t *TfidfTransformer) FitTransform(mat mat.Matrix) (mat.Matrix, error) {
 }
 
 // Save binary serialises the model and writes it into w.  This is useful for persisting
-// a trained model to disk so that it may be loaded (using the Load() method)in another 
+// a trained model to disk so that it may be loaded (using the Load() method)in another
 // context (e.g. production) for reproducable results.
 func (t TfidfTransformer) Save(w io.Writer) error {
 	_, err := t.transform.MarshalBinaryTo(w)
-		
+
 	return err
 }
 
 // Load binary deserialises the previously serialised model into the receiver.  This is
-// useful for loading a previously trained and saved model from another context 
-// (e.g. offline training) for use within another context (e.g. production) for 
+// useful for loading a previously trained and saved model from another context
+// (e.g. offline training) for use within another context (e.g. production) for
 // reproducable results.  Load should only be performed with trusted data.
 func (t *TfidfTransformer) Load(r io.Reader) error {
 	var model sparse.DIA

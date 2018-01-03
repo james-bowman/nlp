@@ -1,8 +1,8 @@
 package nlp
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 
 	"github.com/james-bowman/sparse"
 	"gonum.org/v1/gonum/mat"
@@ -134,7 +134,7 @@ func TestTfidfTransformerSaveLoad(t *testing.T) {
 
 		a := NewTfidfTransformer()
 		a.transform = test.wantedTransform
-		
+
 		buf := new(bytes.Buffer)
 		if err := a.Save(buf); err != nil {
 			t.Errorf("Error encoding: %v\n", err)

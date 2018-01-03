@@ -1,9 +1,11 @@
 package nlp
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
-	"encoding/binary"
+
+	"github.com/james-bowman/sparse"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -35,7 +37,9 @@ func NewTruncatedSVD(k int) *TruncatedSVD {
 // Fit performs the SVD factorisation on the input training data matrix, mat and
 // stores the output term matrix as a transform to apply to matrices in the Transform matrix.
 func (t *TruncatedSVD) Fit(mat mat.Matrix) Transformer {
-	t.FitTransform(mat)
+	if _, err := t.FitTransform(mat); err != nil {
+		panic(fmt.Errorf("nlp: Failed to fit truncated SVD because %v", err))
+	}
 	return t
 }
 
@@ -101,7 +105,7 @@ func (t *TruncatedSVD) extractSVD(svd *mat.SVD) (s []float64, u, v *mat.Dense) {
 }
 
 // Save binary serialises the model and writes it into w.  This is useful for persisting
-// a trained model to disk so that it may be loaded (using the Load() method)in another 
+// a trained model to disk so that it may be loaded (using the Load() method)in another
 // context (e.g. production) for reproducable results.
 func (t TruncatedSVD) Save(w io.Writer) error {
 	var buf [8]byte
@@ -109,18 +113,18 @@ func (t TruncatedSVD) Save(w io.Writer) error {
 	if _, err := w.Write(buf[:]); err != nil {
 		return err
 	}
-	
+
 	_, err := t.Components.MarshalBinaryTo(w)
-		
+
 	return err
 }
 
 // Load binary deserialises the previously serialised model into the receiver.  This is
-// useful for loading a previously trained and saved model from another context 
-// (e.g. offline training) for use within another context (e.g. production) for 
+// useful for loading a previously trained and saved model from another context
+// (e.g. offline training) for use within another context (e.g. production) for
 // reproducable results.  Load should only be performed with trusted data.
 func (t *TruncatedSVD) Load(r io.Reader) error {
-	var n   int
+	var n int
 	var buf [8]byte
 	var err error
 	for n < len(buf) && err == nil {
@@ -145,4 +149,75 @@ func (t *TruncatedSVD) Load(r io.Reader) error {
 	t.Components = &model
 
 	return nil
+}
+
+// SignRandomProjection represents a linear transform of a matrix into a lower
+// dimensional space.  A set of random hyperplanes are projected into dimensional
+// space and then input matrices are expressed relative to the random
+// projections as follows:
+//	For each column vector in the input matrix, construct a corresponding output
+// 	bit vector with each bit (i) calculated as follows:
+//		if dot(vector, projection[i]) > 0
+// 			bit[i] = 1
+// 		else
+//			bit[i] = 0
+// Similar to other methods of random projection this method is unique in that
+// it uses a single bit in the output matrix to represent the sign of result
+// of the comparison (Dot product) with each projection
+type SignRandomProjection struct {
+	// Bits represents the number of bits the output vectors should
+	// be in length and hence the number of random projections needed
+	// for the transformation
+	Bits int
+
+	// simhash is the simhash LSH (Locality Sensitive Hashing) algorithm
+	// used to perform the sign random projection
+	simHash *SimHash
+}
+
+// NewSignRandomProjection constructs a new SignRandomProjection transformer
+// to reduce the dimensionality.  The transformer uses k random hyperplanes
+// where k == bits and k is the dimensionality of the output, transformed
+// matrices.
+func NewSignRandomProjection(bits int) *SignRandomProjection {
+	return &SignRandomProjection{Bits: bits}
+}
+
+// Fit performs the SVD factorisation on the input training data matrix, mat and
+// stores the output term matrix as a transform to apply to matrices in the Transform matrix.
+func (s *SignRandomProjection) Fit(m mat.Matrix) Transformer {
+	rows, _ := m.Dims()
+	s.simHash = NewSimHash(s.Bits, rows)
+	return s
+}
+
+// Transform applies the transform decomposed from the training data matrix in Fit()
+// to the input matrix.  The resulting output matrix will be the closest approximation
+// to the input matrix at a reduced rank.  The returned matrix is a dense matrix type.
+func (s *SignRandomProjection) Transform(m mat.Matrix) (mat.Matrix, error) {
+	if v, isOk := m.(mat.Vector); isOk {
+		return s.simHash.Hash(v), nil
+	}
+
+	if cv, isOk := m.(mat.ColViewer); isOk {
+		_, cols := m.Dims()
+
+		sigs := make([]sparse.BinaryVec, cols)
+
+		for j := 0; j < cols; j++ {
+			sigs[j] = *s.simHash.Hash(cv.ColView(j))
+		}
+
+		return sparse.NewBinary(s.Bits, cols, sigs), nil
+	}
+
+	panic(fmt.Errorf("Supplied matrix supports no way of indexing column vectors.  It must either be a Vector (implementing mat.Vector interface) or implement the mat.ColViewer interface"))
+}
+
+// FitTransform is approximately equivalent to calling Fit() followed by Transform()
+// on the same matrix.  This is a useful shortcut where separate training data is not being
+// used to fit the model i.e. the model is fitted on the fly to the test data.
+// The returned matrix is a dense matrix type.
+func (s *SignRandomProjection) FitTransform(m mat.Matrix) (mat.Matrix, error) {
+	return s.Fit(m).Transform(m)
 }
