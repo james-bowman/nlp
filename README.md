@@ -22,16 +22,17 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 * Convert plain text strings into numerical feature vectors for analysis
 * Stop word removal to remove frequently occuring English words e.g. "the", "and"
 * Feature hashing implementation ('the hashing trick') (using [MurmurHash3](http://github.com/spaolacci/murmur3)) for reduced memory requirements and reduced reliance on training data
-* TF-IDF weighting to account for frequently occuring words
-* LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI)) implementation using truncated SVD (Singular Value Decomposition) for dimensionality reduction.
-* Simhash Locality Sensitive Hashing implementation using sign random projections for dimensionality reduction and efficient information retrieval, enabling approximate cosine similarity using significantly less memory and processing time.
+* [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) weighting to account for frequently occuring words
+* [LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI))](https://en.wikipedia.org/wiki/Latent_semantic_analysis) implementation using truncated [SVD (Singular Value Decomposition)](https://en.wikipedia.org/wiki/Singular-value_decomposition) for dimensionality reduction.
+* Simhash [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) implementation using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) for dimensionality reduction and efficient information retrieval, enabling approximate cosine similarity using significantly less memory and processing time.
 * Cosine, Angular and Hamming similarity/distance measures to calculate the similarity/distance between feature vectors.
 * Persistence for trained models (persistence for Vectorisers coming soon)
 
 ## Planned
 
 * Ability to persist trained vectorisers
-* LDA (Latent Dirichlet Allocation) implementation for topic extraction
+* [Random Indexing](https://en.wikipedia.org/wiki/Random_indexing)
+* [LDA (Latent Dirichlet Allocation)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) implementation for topic extraction
 * Stemming to treat words with common root as the same e.g. "go" and "going"
 * Querying based on multiple query strings (using their centroid) rather than just a single query string.
 * Clustering algorithms e.g. Heirachical, K-means, etc.
@@ -39,8 +40,9 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 
 ## References
 
-1. [Wikipedia](https://en.wikipedia.org/wiki/Latent_semantic_analysis)
 1. [Rosario, Barbara. Latent Semantic Indexing: An overview. INFOSYS 240 Spring 2000](http://people.ischool.berkeley.edu/~rosario/projects/LSI.pdf)
 1. [Latent Semantic Analysis, a scholarpedia article on LSA written by Tom Landauer, one of the creators of LSA.](http://www.scholarpedia.org/article/Latent_semantic_analysis)
 1. [Thomo, Alex. Latent Semantic Analysis (Tutorial).](http://webhome.cs.uvic.ca/~thomo/svd.pdf)
 1. [Latent Semantic Indexing. Standford NLP Course](http://nlp.stanford.edu/IR-book/html/htmledition/latent-semantic-indexing-1.html)
+1. [Charikar, Moses S. Similarity Estimation Techniques from Rounding
+Algorithms](https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf)
