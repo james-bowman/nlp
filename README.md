@@ -21,20 +21,19 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 * [Sparse matrix](http://github.com/james-bowman/sparse) implementations for more effective memory usage
 * Convert plain text strings into numerical feature vectors for analysis
 * Stop word removal to remove frequently occuring English words e.g. "the", "and"
-* Feature hashing implementation ('the hashing trick') (using [MurmurHash3](http://github.com/spaolacci/murmur3))for reduced memory requirements and reduced reliance on training data
+* Feature hashing implementation ('the hashing trick') (using [MurmurHash3](http://github.com/spaolacci/murmur3)) for reduced memory requirements and reduced reliance on training data
 * TF-IDF weighting to account for frequently occuring words
 * LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI)) implementation using truncated SVD (Singular Value Decomposition) for dimensionality reduction.
-* Cosine similarity implementation to calculate the similarity (measured in terms of difference in angles) between feature vectors.
+* Simhash Locality Sensitive Hashing implementation using sign random projections for dimensionality reduction and efficient information retrieval, enabling approximate cosine similarity using significantly less memory and processing time.
+* Cosine, Angular and Hamming similarity/distance measures to calculate the similarity/distance between feature vectors.
 * Persistence for trained models (persistence for Vectorisers coming soon)
 
 ## Planned
 
-* Pipelining of transformations to simplify usage e.g. vectorisation -> tf-idf weighting -> truncated SVD
 * Ability to persist trained vectorisers
 * LDA (Latent Dirichlet Allocation) implementation for topic extraction
 * Stemming to treat words with common root as the same e.g. "go" and "going"
 * Querying based on multiple query strings (using their centroid) rather than just a single query string.
-* Support partitioning for the Latent Semantic Index (LSI)
 * Clustering algorithms e.g. Heirachical, K-means, etc.
 * Classification algorithms e.g. SVM, random forest, etc.
 
