@@ -3,6 +3,7 @@ package nlp
 import (
 	"fmt"
 
+	"github.com/james-bowman/nlp/measures/pairwise"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -23,16 +24,22 @@ func Example() {
 	// set k (the number of dimensions following truncation) to 4
 	reducer := NewTruncatedSVD(4)
 
+	lsiPipeline := NewPipeline(vectoriser, transformer, reducer)
+
 	// Transform the corpus into an LSI fitting the model to the documents in the process
-	matrix, _ := vectoriser.FitTransform(testCorpus...)
-	matrix, _ = transformer.FitTransform(matrix)
-	lsi, _ := reducer.FitTransform(matrix)
+	lsi, err := lsiPipeline.FitTransform(testCorpus...)
+	if err != nil {
+		fmt.Printf("Failed to process documents because %v", err)
+		return
+	}
 
 	// run the query through the same pipeline that was fitted to the corpus and
 	// to project it into the same dimensional space
-	matrix, _ = vectoriser.Transform(query)
-	matrix, _ = transformer.Transform(matrix)
-	queryVector, _ := reducer.Transform(matrix)
+	queryVector, err := lsiPipeline.Transform(query)
+	if err != nil {
+		fmt.Printf("Failed to process documents because %v", err)
+		return
+	}
 
 	// iterate over document feature vectors (columns) in the LSI and compare with the
 	// query vector for similarity.  Similarity is determined by the difference between
@@ -41,7 +48,7 @@ func Example() {
 	var matched int
 	_, docs := lsi.Dims()
 	for i := 0; i < docs; i++ {
-		similarity := CosineSimilarity(queryVector.(mat.ColViewer).ColView(0), lsi.(mat.ColViewer).ColView(i))
+		similarity := pairwise.CosineSimilarity(queryVector.(mat.ColViewer).ColView(0), lsi.(mat.ColViewer).ColView(i))
 		if similarity > highestSimilarity {
 			matched = i
 			highestSimilarity = similarity

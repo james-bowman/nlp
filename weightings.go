@@ -85,7 +85,7 @@ func (t *TfidfTransformer) FitTransform(mat mat.Matrix) (mat.Matrix, error) {
 
 // Save binary serialises the model and writes it into w.  This is useful for persisting
 // a trained model to disk so that it may be loaded (using the Load() method)in another
-// context (e.g. production) for reproducable results.
+// context (e.g. production) for reproducible results.
 func (t TfidfTransformer) Save(w io.Writer) error {
 	_, err := t.transform.MarshalBinaryTo(w)
 
@@ -95,7 +95,7 @@ func (t TfidfTransformer) Save(w io.Writer) error {
 // Load binary deserialises the previously serialised model into the receiver.  This is
 // useful for loading a previously trained and saved model from another context
 // (e.g. offline training) for use within another context (e.g. production) for
-// reproducable results.  Load should only be performed with trusted data.
+// reproducible results.  Load should only be performed with trusted data.
 func (t *TfidfTransformer) Load(r io.Reader) error {
 	var model sparse.DIA
 

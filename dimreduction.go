@@ -106,7 +106,7 @@ func (t *TruncatedSVD) extractSVD(svd *mat.SVD) (s []float64, u, v *mat.Dense) {
 
 // Save binary serialises the model and writes it into w.  This is useful for persisting
 // a trained model to disk so that it may be loaded (using the Load() method)in another
-// context (e.g. production) for reproducable results.
+// context (e.g. production) for reproducible results.
 func (t TruncatedSVD) Save(w io.Writer) error {
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(t.K))
@@ -122,7 +122,7 @@ func (t TruncatedSVD) Save(w io.Writer) error {
 // Load binary deserialises the previously serialised model into the receiver.  This is
 // useful for loading a previously trained and saved model from another context
 // (e.g. offline training) for use within another context (e.g. production) for
-// reproducable results.  Load should only be performed with trusted data.
+// reproducible results.  Load should only be performed with trusted data.
 func (t *TruncatedSVD) Load(r io.Reader) error {
 	var n int
 	var buf [8]byte
@@ -151,7 +151,7 @@ func (t *TruncatedSVD) Load(r io.Reader) error {
 	return nil
 }
 
-// SignRandomProjection represents a linear transform of a matrix into a lower
+// SignRandomProjection represents a transform of a matrix into a lower
 // dimensional space.  A set of random hyperplanes are projected into dimensional
 // space and then input matrices are expressed relative to the random
 // projections as follows:
@@ -163,7 +163,10 @@ func (t *TruncatedSVD) Load(r io.Reader) error {
 //			bit[i] = 0
 // Similar to other methods of random projection this method is unique in that
 // it uses a single bit in the output matrix to represent the sign of result
-// of the comparison (Dot product) with each projection
+// of the comparison (Dot product) with each projection.
+// Hamming similarity (and distance) between the transformed vectors in this
+// new space can approximate Angular similarity (and distance) (which is strongly
+// related to Cosine similarity) of the associated vectors from the original space.
 type SignRandomProjection struct {
 	// Bits represents the number of bits the output vectors should
 	// be in length and hence the number of random projections needed
@@ -176,15 +179,15 @@ type SignRandomProjection struct {
 }
 
 // NewSignRandomProjection constructs a new SignRandomProjection transformer
-// to reduce the dimensionality.  The transformer uses k random hyperplanes
-// where k == bits and k is the dimensionality of the output, transformed
+// to reduce the dimensionality.  The transformer uses a number of random hyperplanes
+// represented by `bits` and is the dimensionality of the output, transformed
 // matrices.
 func NewSignRandomProjection(bits int) *SignRandomProjection {
 	return &SignRandomProjection{Bits: bits}
 }
 
-// Fit performs the SVD factorisation on the input training data matrix, mat and
-// stores the output term matrix as a transform to apply to matrices in the Transform matrix.
+// Fit performs the random projections on the input training data matrix, mat and
+// stores the random projections as a transform to apply to matrices.
 func (s *SignRandomProjection) Fit(m mat.Matrix) Transformer {
 	rows, _ := m.Dims()
 	s.simHash = NewSimHash(s.Bits, rows)
@@ -193,7 +196,8 @@ func (s *SignRandomProjection) Fit(m mat.Matrix) Transformer {
 
 // Transform applies the transform decomposed from the training data matrix in Fit()
 // to the input matrix.  The resulting output matrix will be the closest approximation
-// to the input matrix at a reduced rank.  The returned matrix is a dense matrix type.
+// to the input matrix at a reduced rank.  The returned matrix is a Binary matrix or BinaryVec
+// type depending upon whether m is Matrix or Vector.
 func (s *SignRandomProjection) Transform(m mat.Matrix) (mat.Matrix, error) {
 	if v, isOk := m.(mat.Vector); isOk {
 		return s.simHash.Hash(v), nil
@@ -217,7 +221,8 @@ func (s *SignRandomProjection) Transform(m mat.Matrix) (mat.Matrix, error) {
 // FitTransform is approximately equivalent to calling Fit() followed by Transform()
 // on the same matrix.  This is a useful shortcut where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
-// The returned matrix is a dense matrix type.
+// The returned matrix is a Binary matrix or BinaryVec type depending upon
+// whether m is Matrix or Vector.
 func (s *SignRandomProjection) FitTransform(m mat.Matrix) (mat.Matrix, error) {
 	return s.Fit(m).Transform(m)
 }

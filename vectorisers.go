@@ -1,6 +1,7 @@
 package nlp
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -8,6 +9,21 @@ import (
 	"github.com/spaolacci/murmur3"
 	"gonum.org/v1/gonum/mat"
 )
+
+// Vectoriser provides a common interface for vectorisers that take a variable
+// set of string arguments and produce a numerical matrix of features.
+type Vectoriser interface {
+	Fit(...string) Vectoriser
+	Transform(...string) (mat.Matrix, error)
+	FitTransform(...string) (mat.Matrix, error)
+}
+
+// Transformer provides a common interface for transformer steps.
+type Transformer interface {
+	Fit(mat.Matrix) Transformer
+	Transform(mat mat.Matrix) (mat.Matrix, error)
+	FitTransform(mat mat.Matrix) (mat.Matrix, error)
+}
 
 var (
 	stopWords = []string{"a", "about", "above", "above", "across", "after", "afterwards", "again", "against", "all", "almost", "alone", "along", "already", "also", "although", "always", "am", "among", "amongst", "amoungst", "amount", "an", "and", "another", "any", "anyhow", "anyone", "anything", "anyway", "anywhere", "are", "around", "as", "at", "back", "be", "became", "because", "become", "becomes", "becoming", "been", "before", "beforehand", "behind", "being", "below", "beside", "besides", "between", "beyond", "bill", "both", "bottom", "but", "by", "call", "can", "cannot", "cant", "co", "con", "could", "couldnt", "cry", "de", "describe", "detail", "do", "done", "down", "due", "during", "each", "eg", "eight", "either", "eleven", "else", "elsewhere", "empty", "enough", "etc", "even", "ever", "every", "everyone", "everything", "everywhere", "except", "few", "fifteen", "fify", "fill", "find", "fire", "first", "five", "for", "former", "formerly", "forty", "found", "four", "from", "front", "full", "further", "get", "give", "go", "had", "has", "hasnt", "have", "he", "hence", "her", "here", "hereafter", "hereby", "herein", "hereupon", "hers", "herself", "him", "himself", "his", "how", "however", "hundred", "ie", "if", "in", "inc", "indeed", "interest", "into", "is", "it", "its", "itself", "keep", "last", "latter", "latterly", "least", "less", "ltd", "made", "many", "may", "me", "meanwhile", "might", "mill", "mine", "more", "moreover", "most", "mostly", "move", "much", "must", "my", "myself", "name", "namely", "neither", "never", "nevertheless", "next", "nine", "no", "nobody", "none", "noone", "nor", "not", "nothing", "now", "nowhere", "of", "off", "often", "on", "once", "one", "only", "onto", "or", "other", "others", "otherwise", "our", "ours", "ourselves", "out", "over", "own", "part", "per", "perhaps", "please", "put", "rather", "re", "same", "see", "seem", "seemed", "seeming", "seems", "serious", "several", "she", "should", "show", "side", "since", "sincere", "six", "sixty", "so", "some", "somehow", "someone", "something", "sometime", "sometimes", "somewhere", "still", "such", "system", "take", "ten", "than", "that", "the", "their", "them", "themselves", "then", "thence", "there", "thereafter", "thereby", "therefore", "therein", "thereupon", "these", "they", "thickv", "thin", "third", "this", "those", "though", "three", "through", "throughout", "thru", "thus", "to", "together", "too", "top", "toward", "towards", "twelve", "twenty", "two", "un", "under", "until", "up", "upon", "us", "very", "via", "was", "we", "well", "were", "what", "whatever", "when", "whence", "whenever", "where", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", "whether", "which", "while", "whither", "who", "whoever", "whole", "whom", "whose", "why", "will", "with", "within", "without", "would", "yet", "you", "your", "yours", "yourself", "yourselves"}
@@ -129,7 +145,7 @@ func NewCountVectoriser(removeStopwords bool) *CountVectoriser {
 // Fit processes the supplied training data (a variable number of strings representing
 // documents).  Each word appearing inside the training data will be added to the
 // Vocabulary
-func (v *CountVectoriser) Fit(train ...string) *CountVectoriser {
+func (v *CountVectoriser) Fit(train ...string) Vectoriser {
 	i := 0
 	for _, doc := range train {
 		v.Tokeniser.ForEachIn(doc, func(word string) {
@@ -160,7 +176,7 @@ func (v *CountVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 			}
 		})
 	}
-	return mat, nil
+	return mat.ToCSR(), nil
 }
 
 // FitTransform is exactly equivalent to calling Fit() followed by Transform() on the
@@ -197,7 +213,7 @@ func NewHashingVectoriser(removeStopwords bool, numFeatures int) *HashingVectori
 // based on their hash, it does require a pre-determined vocabulary to map features to their
 // correct row in the vector.  It is effectively stateless and does not require fitting to
 // training data.  The method is included for compatibility with other vectorisers.
-func (v *HashingVectoriser) Fit(train ...string) *HashingVectoriser {
+func (v *HashingVectoriser) Fit(train ...string) Vectoriser {
 	// The hashing vectoriser is stateless and does not require pre-training so this
 	// method does nothing.
 	return v
@@ -218,7 +234,7 @@ func (v *HashingVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 			mat.Set(i, d, mat.At(i, d)+1)
 		})
 	}
-	return mat, nil
+	return mat.ToCSR(), nil
 }
 
 // FitTransform for a HashingVectoriser is exactly equivalent to calling
@@ -230,4 +246,69 @@ func (v *HashingVectoriser) Transform(docs ...string) (mat.Matrix, error) {
 // with other vectorisers.  The returned matrix is a sparse matrix type.
 func (v *HashingVectoriser) FitTransform(docs ...string) (mat.Matrix, error) {
 	return v.Transform(docs...)
+}
+
+// Pipeline is a mechanism for composing processing pipelines out of vectorisers
+// transformation steps.  For example to compose a classic LSA/LSI pipeline
+// (vectorisation -> TFIDF transformation -> Truncated SVD) one could use a
+// Pipeline as follows:
+// 	lsaPipeline := NewPipeline(NewCountVectoriser(false), NewTfidfTransformer(), NewTruncatedSVD(100))
+//
+type Pipeline struct {
+	Vectoriser   Vectoriser
+	Transformers []Transformer
+}
+
+// NewPipeline constructs a new processing pipline with the supplied Vectoriser
+// and one or more transformers
+func NewPipeline(vectoriser Vectoriser, transformers ...Transformer) *Pipeline {
+	pipeline := Pipeline{
+		Vectoriser:   vectoriser,
+		Transformers: transformers,
+	}
+
+	return &pipeline
+}
+
+// Fit fits the model(s) to the supplied training data
+func (p *Pipeline) Fit(docs ...string) Vectoriser {
+	if _, err := p.FitTransform(docs...); err != nil {
+		panic(fmt.Errorf("nlp: Failed to Fit pipeline because %v", err))
+	}
+
+	return p
+}
+
+// Transform transforms the supplied documents into a matrix representation
+// of numerical feature vectors using a model(s) previously fitted to supplied
+// training data.
+func (p *Pipeline) Transform(docs ...string) (mat.Matrix, error) {
+	matrix, err := p.Vectoriser.Transform(docs...)
+	if err != nil {
+		return matrix, err
+	}
+	for _, t := range p.Transformers {
+		matrix, err = t.Transform(matrix)
+		if err != nil {
+			return matrix, err
+		}
+	}
+	return matrix, nil
+}
+
+// FitTransform transforms the supplied documents into a matrix representation
+// of numerical feature vectors fitting the model to the supplied data in the
+// process.
+func (p *Pipeline) FitTransform(docs ...string) (mat.Matrix, error) {
+	matrix, err := p.Vectoriser.FitTransform(docs...)
+	if err != nil {
+		return matrix, err
+	}
+	for _, t := range p.Transformers {
+		matrix, err = t.FitTransform(matrix)
+		if err != nil {
+			return matrix, err
+		}
+	}
+	return matrix, nil
 }
