@@ -21,7 +21,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 * [Sparse matrix](http://github.com/james-bowman/sparse) implementations for more effective memory usage
 * Convert plain text strings into numerical feature vectors for analysis
 * Stop word removal to remove frequently occuring English words e.g. "the", "and"
-* Feature hashing implementation ('the hashing trick') (using [MurmurHash3](http://github.com/spaolacci/murmur3)) for reduced memory requirements and reduced reliance on training data
+* [Feature hashing](https://en.wikipedia.org/wiki/Feature_hashing)('the hashing trick') implementation (using [MurmurHash3](http://github.com/spaolacci/murmur3)) for reduced memory requirements and reduced reliance on training data
 * [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) weighting to account for frequently occuring words
 * [LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI))](https://en.wikipedia.org/wiki/Latent_semantic_analysis) implementation using truncated [SVD (Singular Value Decomposition)](https://en.wikipedia.org/wiki/Singular-value_decomposition) for dimensionality reduction.
 * Simhash [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) implementation using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) for dimensionality reduction and efficient information retrieval, enabling approximate cosine similarity using significantly less memory and processing time.

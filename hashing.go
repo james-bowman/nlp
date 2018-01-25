@@ -1,7 +1,6 @@
 package nlp
 
 import (
-	"fmt"
 	"math/rand"
 
 	"github.com/james-bowman/sparse"
@@ -46,11 +45,11 @@ func (h *SimHash) Hash(v mat.Vector) *sparse.BinaryVec {
 	bits := len(h.projections)
 	dim := h.projections[0].Len()
 	if dim != v.Len() {
-		panic(fmt.Errorf("The supplied vector has a different number of dimensions from the projected hyperplanes"))
+		panic("The supplied vector has a different number of dimensions from the projected hyperplanes")
 	}
 	sig := sparse.NewBinaryVec(bits)
 	for i := 0; i < bits; i++ {
-		if mat.Dot(v, h.projections[i]) >= 0 {
+		if sparse.Dot(v, h.projections[i]) >= 0 {
 			sig.SetBit(i)
 		}
 	}

@@ -7,7 +7,7 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// Comparer is a type of function that compares two *mat.Vector types and
+// Comparer is a type of function that compares two mat.Vector types and
 // returns a value indicating how similar they are.
 type Comparer func(a, b mat.Vector) float64
 
@@ -16,9 +16,9 @@ type Comparer func(a, b mat.Vector) float64
 func CosineSimilarity(a, b mat.Vector) float64 {
 	// Cosine angle between two vectors is equal to their dot product divided by
 	// the product of their L2 norms
-	dotProduct := mat.Dot(a, b)
-	norma := mat.Norm(a, 2.0)
-	normb := mat.Norm(b, 2.0)
+	dotProduct := sparse.Dot(a, b)
+	norma := sparse.Norm(a, 2.0)
+	normb := sparse.Norm(b, 2.0)
 
 	return (dotProduct / (norma * normb))
 }
@@ -38,7 +38,7 @@ func CosineDistance(a, b mat.Vector) float64 {
 // AngularDistance is a distance measure closely related to CosineSimilarity.
 // It measures the difference between the angles of 2 vectors by taking
 // the inverse cosine (acos) of the CosineSimilarity and dividing by Pi.
-// Unlike CosineSimilarity, this distance measure is a valid distant measure
+// Unlike CosineSimilarity, this distance measure is a valid distance measure
 // as it obeys triangular inequality.
 // See https://en.wikipedia.org/wiki/Cosine_similarity#Angular_distance_and_similarity
 func AngularDistance(a, b mat.Vector) float64 {

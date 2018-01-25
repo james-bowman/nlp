@@ -1,7 +1,6 @@
 package nlp
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -273,7 +272,7 @@ func NewPipeline(vectoriser Vectoriser, transformers ...Transformer) *Pipeline {
 // Fit fits the model(s) to the supplied training data
 func (p *Pipeline) Fit(docs ...string) Vectoriser {
 	if _, err := p.FitTransform(docs...); err != nil {
-		panic(fmt.Errorf("nlp: Failed to Fit pipeline because %v", err))
+		panic("nlp: Failed to Fit pipeline because " + err.Error())
 	}
 
 	return p

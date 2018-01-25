@@ -5,7 +5,11 @@ Overview
 
 The algorithms in the package typically support document input as text strings which are then encoded as a matrix of numerical feature vectors called a `term document matrix`.  Columns in this matrix represent the documents in the corpus and the rows represent terms occurring in the documents.  The individual elements within the matrix contains counts of the number of occurrences of each term in the associated document.
 
-This matrix can be manipulated through the application of additional transformations for the purpose of weighting features to remove natural biases which would skew results e.g. commonly occurring words like `the`, `of`, `and`, etc. should carry lower weight than unusual words.  Finally, the matrix is decomposed and truncated using an algorithm called SVD (`Singular Value Decomposition`) which approximates the original term document matrix with a new matrix of much lower rank (typically around 100 rather than 1000s).  This is a fundamental part of LSA and serves a number of purposes:
+This matrix can be manipulated through the application of additional transformations for weighting features, identifying relationships or optimising the data for analysis, information retrieval and/or predictions.
+
+A common transformation is for the purpose of weighting features to remove natural biases which would skew results e.g. commonly occurring words like `the`, `of`, `and`, etc. which should carry lower weight than unusual words.
+
+Term Document matrices typically have a very large number of dimensions and so transformations are often applied to reduce the dimensionality using techniques such as Locality Sensitive Hashing or Latent Semantic Analysis (typically performed using matrix SVD - `Singular Value Decomposition`) which approximates the original term document matrix with a new matrix of much lower rank (typically around 100 rather than 1000s).  Truncated SVD is a fundamental part of LSA (Latent Semantic Analysis aka Latent Semantic Indexing) and serves a number of purposes:
 
 1. The reduced dimensionality of the data theoretically requires less memory.
 
