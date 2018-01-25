@@ -7,6 +7,7 @@ import (
 
 	"github.com/james-bowman/sparse"
 	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/stat"
 )
 
 // TruncatedSVD implements the Singular Value Decomposition factorisation of matrices.
@@ -38,7 +39,7 @@ func NewTruncatedSVD(k int) *TruncatedSVD {
 // stores the output term matrix as a transform to apply to matrices in the Transform matrix.
 func (t *TruncatedSVD) Fit(mat mat.Matrix) Transformer {
 	if _, err := t.FitTransform(mat); err != nil {
-		panic(fmt.Errorf("nlp: Failed to fit truncated SVD because %v", err))
+		panic("nlp: Failed to fit truncated SVD because " + err.Error())
 	}
 	return t
 }
@@ -151,78 +152,60 @@ func (t *TruncatedSVD) Load(r io.Reader) error {
 	return nil
 }
 
-// SignRandomProjection represents a transform of a matrix into a lower
-// dimensional space.  A set of random hyperplanes are projected into dimensional
-// space and then input matrices are expressed relative to the random
-// projections as follows:
-//	For each column vector in the input matrix, construct a corresponding output
-// 	bit vector with each bit (i) calculated as follows:
-//		if dot(vector, projection[i]) > 0
-// 			bit[i] = 1
-// 		else
-//			bit[i] = 0
-// Similar to other methods of random projection this method is unique in that
-// it uses a single bit in the output matrix to represent the sign of result
-// of the comparison (Dot product) with each projection.
-// Hamming similarity (and distance) between the transformed vectors in this
-// new space can approximate Angular similarity (and distance) (which is strongly
-// related to Cosine similarity) of the associated vectors from the original space.
-type SignRandomProjection struct {
-	// Bits represents the number of bits the output vectors should
-	// be in length and hence the number of random projections needed
-	// for the transformation
-	Bits int
-
-	// simhash is the simhash LSH (Locality Sensitive Hashing) algorithm
-	// used to perform the sign random projection
-	simHash *SimHash
+// PCA calculates the principal components of a matrix, or the axis of greatest variance and
+// then projects matrices onto those axis.
+// See https://en.wikipedia.org/wiki/Principal_component_analysis for further details.
+type PCA struct {
+	// K is the number of components
+	K  int
+	pc *stat.PC
 }
 
-// NewSignRandomProjection constructs a new SignRandomProjection transformer
-// to reduce the dimensionality.  The transformer uses a number of random hyperplanes
-// represented by `bits` and is the dimensionality of the output, transformed
-// matrices.
-func NewSignRandomProjection(bits int) *SignRandomProjection {
-	return &SignRandomProjection{Bits: bits}
+// NewPCA constructs a new Principal Component Analysis transformer to reduce the dimensionality,
+// projecting matrices onto the axis of greatest variance
+func NewPCA(k int) *PCA {
+	return &PCA{K: k, pc: &stat.PC{}}
 }
 
-// Fit performs the random projections on the input training data matrix, mat and
-// stores the random projections as a transform to apply to matrices.
-func (s *SignRandomProjection) Fit(m mat.Matrix) Transformer {
-	rows, _ := m.Dims()
-	s.simHash = NewSimHash(s.Bits, rows)
-	return s
-}
-
-// Transform applies the transform decomposed from the training data matrix in Fit()
-// to the input matrix.  The resulting output matrix will be the closest approximation
-// to the input matrix at a reduced rank.  The returned matrix is a Binary matrix or BinaryVec
-// type depending upon whether m is Matrix or Vector.
-func (s *SignRandomProjection) Transform(m mat.Matrix) (mat.Matrix, error) {
-	if v, isOk := m.(mat.Vector); isOk {
-		return s.simHash.Hash(v), nil
+// Fit calculates the principal component directions (axis of greatest variance) within the
+// training data which can then be used to project matrices onto those principal components using
+// the Transform() method.
+func (p *PCA) Fit(m mat.Matrix) Transformer {
+	if ok := p.pc.PrincipalComponents(m.T(), nil); !ok {
+		panic("nlp: PCA analysis failed during fitting")
 	}
 
-	if cv, isOk := m.(mat.ColViewer); isOk {
-		_, cols := m.Dims()
+	return p
+}
 
-		sigs := make([]sparse.BinaryVec, cols)
+// Transform projects the matrix onto the first K principal components calculated during training
+// (the Fit() method).  The returned matrix will be of reduced dimensionality compared to the input
+// (K x c compared to r x c of the input).
+func (p *PCA) Transform(m mat.Matrix) (mat.Matrix, error) {
+	r, _ := m.Dims()
 
-		for j := 0; j < cols; j++ {
-			sigs[j] = *s.simHash.Hash(cv.ColView(j))
-		}
+	//var proj mat.Dense
+	var proj sparse.CSR
+	proj.Mul(m.T(), p.pc.VectorsTo(nil).Slice(0, r, 0, p.K))
 
-		return sparse.NewBinary(s.Bits, cols, sigs), nil
-	}
+	// matrix is r x c (t x d)
+	// m.T() = c x r (d x t)
+	// slice c x K
 
-	panic(fmt.Errorf("Supplied matrix supports no way of indexing column vectors.  It must either be a Vector (implementing mat.Vector interface) or implement the mat.ColViewer interface"))
+	// (ar x ac) * (br x bc) = ar x bc
+	// ac == br
+	return proj.T(), nil
 }
 
 // FitTransform is approximately equivalent to calling Fit() followed by Transform()
 // on the same matrix.  This is a useful shortcut where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
-// The returned matrix is a Binary matrix or BinaryVec type depending upon
-// whether m is Matrix or Vector.
-func (s *SignRandomProjection) FitTransform(m mat.Matrix) (mat.Matrix, error) {
-	return s.Fit(m).Transform(m)
+func (p *PCA) FitTransform(m mat.Matrix) (mat.Matrix, error) {
+	return p.Fit(m).Transform(m)
+}
+
+// ExplainedVariance returns a slice of float64 values representing the variances of the
+// principal component scores.
+func (p *PCA) ExplainedVariance() []float64 {
+	return p.pc.VarsTo(nil)
 }
