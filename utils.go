@@ -2,7 +2,7 @@ package nlp
 
 import "gonum.org/v1/gonum/mat"
 
-// ColDo executes fn for each column in m
+// ColDo executes fn for each column j in m
 func ColDo(m mat.Matrix, fn func(j int, vec mat.Vector)) {
 	if v, isOk := m.(mat.Vector); isOk {
 		fn(0, v)
