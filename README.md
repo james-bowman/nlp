@@ -26,7 +26,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 * [LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI))](https://en.wikipedia.org/wiki/Latent_semantic_analysis) implementation using truncated [SVD (Singular Value Decomposition)](https://en.wikipedia.org/wiki/Singular-value_decomposition) for dimensionality reduction.
 * [PCA (Principal Component Analysis)](https://en.wikipedia.org/wiki/Principal_component_analysis)
 * [SimHash](https://en.wikipedia.org/wiki/SimHash) implementation of [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) to support approximate cosine similarity using significantly less memory and processing time.
-* [Random Indexing (RI)](https://en.wikipedia.org/wiki/Random_indexing) and Reflective Random Indexing (RRI) (which extends RI to support indirect inference) for scalable [Latent Semantic Analysis (LSA)]((https://en.wikipedia.org/wiki/Latent_semantic_analysis) with semantic vector space models.
+* [Random Indexing (RI)](https://en.wikipedia.org/wiki/Random_indexing) and Reflective Random Indexing (RRI) (which extends RI to support indirect inference) for scalable [Latent Semantic Analysis (LSA)](https://en.wikipedia.org/wiki/Latent_semantic_analysis) with semantic vector space models.
 * Cosine, Angular and Hamming similarity/distance measures to calculate the similarity/distance between feature vectors.
 * Persistence for trained models (persistence for Vectorisers coming soon)
 
