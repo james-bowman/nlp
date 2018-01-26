@@ -15,7 +15,7 @@ import (
 
 // SignRandomProjection represents a transform of a matrix into a lower
 // dimensional space.  Sign Random Projection is a method of Locality
-// Sensitive Hashing sometimes referred to as the random hyperplane method.
+// Sensitive Hashing (LSH) sometimes referred to as the random hyperplane method.
 // A set of random hyperplanes are projected into dimensional
 // space and then input matrices are expressed relative to the random
 // projections as follows:
@@ -27,7 +27,8 @@ import (
 //			bit[i] = 0
 // Similar to other methods of random projection this method is unique in that
 // it uses a single bit in the output matrix to represent the sign of result
-// of the comparison (Dot product) with each projection.
+// of the comparison (Dot product) with each projection and so is very space
+// and computationally efficient.
 // Hamming similarity (and distance) between the transformed vectors in this
 // new space can approximate Angular similarity (and distance) (which is strongly
 // related to Cosine similarity) of the associated vectors from the original space
@@ -174,11 +175,13 @@ const (
 )
 
 // RandomIndexing is a method of dimensionality reduction similar to
-// random projection and locality sensitive hashing.  Random
+// TruncatedSVD and PCA.  Random
 // Indexing is designed to solve limitations of very high dimensional
 // vector space model implementations for modelling term co-occurance
 // in language processing such as SVD as used by LSA/LSI (Latent
-// Semantic Analysis/Latent Semantic Indexing).
+// Semantic Analysis/Latent Semantic Indexing).  In implementation
+// it bears some similarity to other random projection techniques
+// such as those implemented in RandomProjection and SignRandomProjection.
 // The RandomIndexing type can also be used to perform Reflective
 // Random Indexing which extends the Random Indexing model with additional
 // training cycles to support indirect inferrences i.e. find synonyms
