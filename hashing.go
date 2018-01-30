@@ -29,11 +29,11 @@ func NewSimHash(bits int, dim int) *SimHash {
 	projections := make([]*mat.VecDense, bits)
 
 	for j := 0; j < bits; j++ {
-		p := mat.NewVecDense(dim, nil)
+		p := make([]float64, dim)
 		for i := 0; i < dim; i++ {
-			p.SetVec(i, rand.NormFloat64())
+			p[i] = rand.NormFloat64()
 		}
-		projections[j] = p
+		projections[j] = mat.NewVecDense(dim, p)
 	}
 	return &SimHash{projections: projections}
 }
