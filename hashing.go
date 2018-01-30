@@ -13,7 +13,7 @@ import (
 // hashed vectors can be compared using Hamming Similarity for a faster, more space
 // efficient, approximation of Cosine Similarity for the original vectors.
 type SimHash struct {
-	projections []*mat.VecDense
+	hyperplanes []*mat.VecDense
 }
 
 // NewSimHash constructs a new SimHash creating a set of locality sensitive
@@ -26,30 +26,30 @@ type SimHash struct {
 // the dot product comparison with each random hyperplane.
 func NewSimHash(bits int, dim int) *SimHash {
 	// Generate random hyperplanes
-	projections := make([]*mat.VecDense, bits)
+	hyperplanes := make([]*mat.VecDense, bits)
 
 	for j := 0; j < bits; j++ {
 		p := make([]float64, dim)
 		for i := 0; i < dim; i++ {
 			p[i] = rand.NormFloat64()
 		}
-		projections[j] = mat.NewVecDense(dim, p)
+		hyperplanes[j] = mat.NewVecDense(dim, p)
 	}
-	return &SimHash{projections: projections}
+	return &SimHash{hyperplanes: hyperplanes}
 }
 
 // Hash accepts a Vector and outputs a BinaryVec (which also implements the
 // Gonum Vector interface).  This method will panic if the input vector is of a
 // different length than the dim parameter used when constructing the SimHash.
 func (h *SimHash) Hash(v mat.Vector) *sparse.BinaryVec {
-	bits := len(h.projections)
-	dim := h.projections[0].Len()
+	bits := len(h.hyperplanes)
+	dim := h.hyperplanes[0].Len()
 	if dim != v.Len() {
 		panic("The supplied vector has a different number of dimensions from the projected hyperplanes")
 	}
 	sig := sparse.NewBinaryVec(bits)
 	for i := 0; i < bits; i++ {
-		if sparse.Dot(v, h.projections[i]) >= 0 {
+		if sparse.Dot(v, h.hyperplanes[i]) >= 0 {
 			sig.SetBit(i)
 		}
 	}
