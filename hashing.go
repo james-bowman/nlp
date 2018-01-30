@@ -19,13 +19,13 @@ type SimHash struct {
 // NewSimHash constructs a new SimHash creating a set of locality sensitive
 // hash functions which are combined to accept input vectors of length dim
 // and produce hashed binary vector fingerprints of length bits.  This method
-// projects a series of random hyperplanes which are then compared to each
+// creates a series of random hyperplanes which are then compared to each
 // input vector to produce the output hashed binary vector encoding the input
 // vector's location in vector space relative to the hyperplanes.  Each bit in
 // the output vector corresponds to the sign (1/0 for +/-) of the result of
 // the dot product comparison with each random hyperplane.
 func NewSimHash(bits int, dim int) *SimHash {
-	// Generate random hyperplane projections
+	// Generate random hyperplanes
 	projections := make([]*mat.VecDense, bits)
 
 	for j := 0; j < bits; j++ {
