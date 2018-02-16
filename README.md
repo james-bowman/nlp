@@ -9,11 +9,11 @@
 
 <img src="https://github.com/james-bowman/nlp/raw/master/Gophers.008.crop.png" alt="nlp" align="left" />
 
-An implementation of selected machine learning algorithms for basic natural language processing in golang.  The primary focus for the package is the statistical semantics of plain-text documents supporting semantic analysis and retrieval of semantically similar documents.
+Implementations of selected machine learning algorithms for natural language processing in golang.  The primary focus for the package is the statistical semantics of plain-text documents supporting semantic analysis and retrieval of semantically similar documents.
 
 Built upon the [Gonum library](http://http://www.gonum.org/) for linear algebra and scientific computing with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/) and [Gensim](https://radimrehurek.com/gensim/).
 
-Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-analysis-of-webpages-with-machine-learning-in-go/) or [the go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
+Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-analysis-of-webpages-with-machine-learning-in-go/) or [the Go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
 
 <br clear="all"/>
 
