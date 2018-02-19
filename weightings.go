@@ -29,12 +29,14 @@ func NewTfidfTransformer() *TfidfTransformer {
 // Fit takes a training term document matrix, counts term occurrences across all documents
 // and constructs an inverse document frequency transform to apply to matrices in subsequent
 // calls to Transform().
-func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
-	m, n := mat.Dims()
+func (t *TfidfTransformer) Fit(matrix mat.Matrix) Transformer {
+	if t, isTypeConv := matrix.(sparse.TypeConverter); isTypeConv {
+		matrix = t.ToCSR()
+	}
+	m, n := matrix.Dims()
 
 	weights := make([]float64, m)
-
-	csr, ok := mat.(*sparse.CSR)
+	csr, ok := matrix.(*sparse.CSR)
 
 	for i := 0; i < m; i++ {
 		df := 0
@@ -42,7 +44,7 @@ func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
 			df = csr.RowNNZ(i)
 		} else {
 			for j := 0; j < n; j++ {
-				if mat.At(i, j) != 0 {
+				if matrix.At(i, j) != 0 {
 					df++
 				}
 			}
@@ -63,11 +65,14 @@ func (t *TfidfTransformer) Fit(mat mat.Matrix) Transformer {
 // each term frequency according to how often it appears across the whole document corpus
 // so that naturally frequent occurring words are given less weight than uncommon ones.
 // The returned matrix is a sparse matrix type.
-func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
+func (t *TfidfTransformer) Transform(matrix mat.Matrix) (mat.Matrix, error) {
+	if t, isTypeConv := matrix.(sparse.TypeConverter); isTypeConv {
+		matrix = t.ToCSR()
+	}
 	var product sparse.CSR
 
 	// simply multiply the matrix by our idf transform (the diagonal matrix of term weights)
-	product.Mul(t.transform, mat)
+	product.Mul(t.transform, matrix)
 
 	// todo: possibly L2 norm matrix to remove any bias caused by documents of different
 	// lengths where longer documents naturally have more words and so higher word counts
@@ -79,8 +84,11 @@ func (t *TfidfTransformer) Transform(mat mat.Matrix) (mat.Matrix, error) {
 // same matrix.  This is a convenience where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
 // The returned matrix is a sparse matrix type.
-func (t *TfidfTransformer) FitTransform(mat mat.Matrix) (mat.Matrix, error) {
-	return t.Fit(mat).Transform(mat)
+func (t *TfidfTransformer) FitTransform(matrix mat.Matrix) (mat.Matrix, error) {
+	if t, isTypeConv := matrix.(sparse.TypeConverter); isTypeConv {
+		matrix = t.ToCSR()
+	}
+	return t.Fit(matrix).Transform(matrix)
 }
 
 // Save binary serialises the model and writes it into w.  This is useful for persisting
