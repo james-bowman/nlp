@@ -164,7 +164,7 @@ type RIBasis int
 const (
 	// RowBasedRI indicates rows (terms in a term-document matrix)
 	// forming the initial basis for elemental vectors in Random Indexing.
-	// This is basis used for Random Indexing of documents, Reflective
+	// This is the basis used for Random Indexing of documents, Reflective
 	// Random Indexing can use either rows or columns as the initial
 	// basis for elemental vectors.
 	RowBasedRI RIBasis = iota
@@ -181,10 +181,11 @@ const (
 // in language processing such as SVD as used by LSA/LSI (Latent
 // Semantic Analysis/Latent Semantic Indexing).  In implementation
 // it bears some similarity to other random projection techniques
-// such as those implemented in RandomProjection and SignRandomProjection.
+// such as those implemented in RandomProjection and SignRandomProjection
+// within this package.
 // The RandomIndexing type can also be used to perform Reflective
 // Random Indexing which extends the Random Indexing model with additional
-// training cycles to support indirect inferrences i.e. find synonyms
+// training cycles to support indirect inferrence i.e. find synonyms
 // where the words do not appear together in documents.
 type RandomIndexing struct {
 	// K specifies the number of dimensions for the semantic space
@@ -203,7 +204,9 @@ type RandomIndexing struct {
 
 	// Reflections specifies the number of reflective training cycles
 	// to run during fitting for RRI (Reflective Random Indexing).
-	// If Type is ColBasedRI then Reflections must be >= 1
+	// If Type is ColBasedRI then there is an implicit reflective
+	// training cycle performed in addition to the number of reflections
+	// specified.
 	Reflections   int
 	elementalVecs mat.Matrix
 }
@@ -233,18 +236,14 @@ func NewRandomIndexing(k int, density float64) *RandomIndexing {
 // t specifies the basis for the reflective random indexing i.e.
 // whether the initial, random elemental vectors should represent
 // columns or rows.
-// reflections is the number of training cycles to apply.
+// reflections is the number of additional training cycles to apply
+// to build the elemental vectors.
 // If t == RowBasedRI and reflections == 0 then the created type
 // will perform conventional Random Indexing.
-// NewReflectiveRandomIndexing will panic if t == ColBasedRI and
-// reflections < 1 because column based Reflective Random Indexing
-// requires at least one reflective training cycle to generate the
-// row based elemental vectors required for RI/RRI.
+// if t == ColBasedRI there will be an implicit training cycle
+// in order to construct the elemental vectors which will is
+// performed in addition to the number of reflections specified.
 func NewReflectiveRandomIndexing(k int, t RIBasis, reflections int, density float64) *RandomIndexing {
-	if t == ColBasedRI && reflections < 1 {
-		panic("nlp: At least 1 reflection required for Column Based Reflective Random Indexing")
-	}
-
 	r := RandomIndexing{
 		K:           k,
 		Density:     density,
@@ -270,7 +269,6 @@ func (r *RandomIndexing) Fit(m mat.Matrix) Transformer {
 		r.elementalVecs = p.(sparse.TypeConverter).ToCSC()
 
 		r.trainingCycle(m.T())
-		cyclesPerformed = 1
 	} else {
 		p = CreateRandomProjectionTransform(r.K, rows, r.Density)
 		r.elementalVecs = p.(sparse.TypeConverter).ToCSC()
@@ -296,8 +294,8 @@ func (r *RandomIndexing) trainingCycle(m mat.Matrix) {
 // Transform applies the transform, projecting matrix into the
 // lower dimensional semantic space.  The output matrix will be of
 // shape k x c and will be a sparse CSC format matrix.
-func (r *RandomIndexing) Transform(matrix mat.Matrix) (mat.Matrix, error) {
-	rows, cols := matrix.Dims()
+func (r *RandomIndexing) Transform(m mat.Matrix) (mat.Matrix, error) {
+	_, cols := m.Dims()
 	k, _ := r.elementalVecs.Dims()
 
 	var ptr int
@@ -305,31 +303,16 @@ func (r *RandomIndexing) Transform(matrix mat.Matrix) (mat.Matrix, error) {
 	var data []float64
 	indptr := make([]int, cols+1)
 
-	var m mat.Matrix
-	if t, isTypeConv := matrix.(sparse.TypeConverter); isTypeConv {
+	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
 		m = t.ToCSC()
-	} else {
-		m = matrix
 	}
 
-	colDoer, isColDoer := m.(mat.ColNonZeroDoer)
-
 	for j := 0; j < cols; j++ {
-		featVec := sparse.NewVecCOO(k, []int{0}, []float64{0})
-		if isColDoer {
-			colDoer.DoColNonZero(j, func(i, j int, v float64) {
-				idxVec := r.elementalVecs.(mat.ColViewer).ColView(i)
-				featVec.AddScaledVec(featVec, v, idxVec)
-			})
-		} else {
-			for i := 0; i < rows; i++ {
-				v := m.At(i, j)
-				if v != 0 {
-					idxVec := r.elementalVecs.(mat.ColViewer).ColView(i)
-					featVec.AddScaledVec(featVec, v, idxVec)
-				}
-			}
-		}
+		featVec := sparse.NewVecCOO(k, []int{}, []float64{})
+		ColElemDo(m, j, func(i, j int, v float64) {
+			idxVec := r.elementalVecs.(mat.ColViewer).ColView(i)
+			featVec.AddScaledVec(featVec, v, idxVec)
+		})
 		featVec.DoNonZero(func(i, j int, v float64) {
 			data = append(data, v)
 			ind = append(ind, i)

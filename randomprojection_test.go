@@ -212,8 +212,8 @@ func TestReflectiveRandomIndexing(t *testing.T) {
 		matrix := sparse.Random(sparse.CSRFormat, test.rows, test.cols, test.density).(sparse.TypeConverter).ToCSR()
 		query := matrix.ColView(0)
 
-		// When transformed using sign random projections
-		transformer := NewReflectiveRandomIndexing(test.k, ColBasedRI, 1, float64(test.density))
+		// When transformed using Reflective Random Indexing
+		transformer := NewReflectiveRandomIndexing(test.k, ColBasedRI, 0, float64(test.density))
 		reducedDimMatrix, err := transformer.FitTransform(matrix)
 		if err != nil {
 			t.Errorf("Failed to transform matrix because %v\n", err)

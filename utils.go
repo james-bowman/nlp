@@ -30,3 +30,22 @@ func ColDo(m mat.Matrix, fn func(j int, vec mat.Vector)) {
 		fn(j, mat.NewVecDense(r, mat.Col(nil, j, m)))
 	}
 }
+
+// ColElemDo executes fn for each element in column j of matrix m.
+// If m implements mat.ColNonZeroDoer then only non-zero elements
+// will be visited.
+func ColElemDo(m mat.Matrix, j int, fn func(i, j int, v float64)) {
+	colNonZeroDoer, isSparse := m.(mat.ColNonZeroDoer)
+	r, _ := m.Dims()
+
+	if isSparse {
+		colNonZeroDoer.DoColNonZero(j, fn)
+	} else {
+		for i := 0; i < r; i++ {
+			v := m.At(i, j)
+			if v != 0 {
+				fn(i, j, v)
+			}
+		}
+	}
+}
