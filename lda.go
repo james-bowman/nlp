@@ -273,7 +273,7 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 			prev = mat.Col(prev, j, nTheta)
 		}
 		rhoTheta = l.RhoTheta.Calc(l.rhoThetaT + float64(counter))
-		ColElemDo(m, j, func(i, j int, v float64) {
+		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			var gammaSum float64
 			for k := 0; k < l.K; k++ {
 				// Eqn. 5.
@@ -328,7 +328,7 @@ func (l *LatentDirichletAllocation) fitMiniBatch(cStart, cEnd int, wc []float64,
 		l.burnInDoc(j, l.BurnInPasses, m, wc[j], nTheta)
 
 		rhoTheta = l.RhoTheta.Calc(l.rhoThetaT + float64(l.BurnInPasses))
-		ColElemDo(m, j, func(i, j int, v float64) {
+		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			var gammaSum float64
 			for k := 0; k < l.K; k++ {
 				// Eqn. 5.
@@ -455,7 +455,7 @@ func (l *LatentDirichletAllocation) perplexity(m mat.Matrix, sum float64, nTheta
 	}()
 
 	for j := 0; j < c; j++ {
-		ColElemDo(m, j, func(i, j int, v float64) {
+		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			phiCol.ColViewOf(nPhi, i)
 			thetaCol.ColViewOf(nTheta, j)
 			ttlLogWordProb += math.Log2(mat.Dot(phiCol, thetaCol)) * v
@@ -487,7 +487,7 @@ func (l *LatentDirichletAllocation) unNormalisedTransform(m mat.Matrix) *mat.Den
 
 	for j := 0; j < c; j++ {
 		var wc float64
-		ColElemDo(m, j, func(i, j int, v float64) {
+		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			wc += v
 		})
 		l.burnInDoc(j, l.TransformationPasses, m, wc, prod)
@@ -543,7 +543,7 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 	wc := make([]float64, c)
 
 	for j := 0; j < c; j++ {
-		ColElemDo(m, j, func(i, j int, v float64) {
+		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			wc[j] += v
 		})
 		l.sum += wc[j]
