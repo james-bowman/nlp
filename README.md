@@ -54,4 +54,4 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 -->
 1. [Foulds, James; Boyles, Levi; Dubois, Christopher; Smyth, Padhraic; Welling, Max (2013). Stochastic Collapsed Variational Bayesian Inference for Latent Dirichlet Allocation][SCVB0]
 
-[SCVB0]: (https://arxiv.org/pdf/1305.2452)
+[SCVB0]: https://arxiv.org/pdf/1305.2452
