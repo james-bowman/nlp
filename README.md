@@ -27,13 +27,13 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 * [PCA (Principal Component Analysis)](https://en.wikipedia.org/wiki/Principal_component_analysis)
 * Fast retrieval of semantically similar documents with [SimHash](https://en.wikipedia.org/wiki/SimHash) implementation of [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) to support fast, approximate cosine similarity using significantly less memory and processing time.
 * [Random Indexing (RI)](https://en.wikipedia.org/wiki/Random_indexing) and Reflective Random Indexing (RRI) (which extends RI to support indirect inference) for scalable [Latent Semantic Analysis (LSA)](https://en.wikipedia.org/wiki/Latent_semantic_analysis) over large, web-scale corpora.
+* [Latent Dirichlet Allocation (LDA)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) using a parallelised implementation of the fast [SCVB0 (Stochastic Collapsed Variational Bayes) algorithm][SCVB0] algorithm for topic extraction. 
 * Cosine, Angular and Hamming similarity/distance measures to calculate the similarity/distance between document feature vectors.
 * Persistence for trained models (persistence for Vectorisers coming soon)
 
 ## Planned
 
 * Ability to persist trained vectorisers
-* [LDA (Latent Dirichlet Allocation)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) implementation for topic extraction
 * Stemming to treat words with common root as the same e.g. "go" and "going"
 * Clustering algorithms e.g. Heirachical, K-means, etc.
 * Classification algorithms e.g. SVM, random forest, etc.
@@ -48,3 +48,10 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 1. [Kanerva, Pentti, Kristoferson, Jan and Holst, Anders (2000). Random Indexing of Text Samples for Latent Semantic Analysis](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.4.6523&rep=rep1&type=pdf)
 1. [Rangan, Venkat. Discovery of Related Terms in a corpus using Reflective Random Indexing](https://www.umiacs.umd.edu/~oard/desi4/papers/rangan.pdf)
 1. [Vasuki, Vidya and Cohen, Trevor. Reflective random indexing for semi-automatic indexing of the biomedical literature](https://ac.els-cdn.com/S1532046410000481/1-s2.0-S1532046410000481-main.pdf?_tid=f31f92e8-028a-11e8-8c31-00000aab0f6c&acdnat=1516965824_e24a804445fff1744281ca6f5898a3a4)
+1. [QasemiZadeh, Behrang and Handschuh, Siegfried. Random Indexing Explained with High Probability](http://pars.ie/publications/papers/pre-prints/random-indexing-dr-explained.pdf)
+<!-->
+1. [Geva, Shlomo & De Vries, Christopher M (2011). TOPSIG : Topology Preserving Document Signatures.](https://eprints.qut.edu.au/43451/4/43451.pdf)
+-->
+1. [Foulds, James; Boyles, Levi; Dubois, Christopher; Smyth, Padhraic; Welling, Max (2013). Stochastic Collapsed Variational Bayesian Inference for Latent Dirichlet Allocation][SCVB0]
+
+[SCVB0]: (https://arxiv.org/pdf/1305.2452)
