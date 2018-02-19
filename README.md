@@ -51,7 +51,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 1. [QasemiZadeh, Behrang and Handschuh, Siegfried. Random Indexing Explained with High Probability](http://pars.ie/publications/papers/pre-prints/random-indexing-dr-explained.pdf)
 1. [Foulds, James; Boyles, Levi; Dubois, Christopher; Smyth, Padhraic; Welling, Max (2013). Stochastic Collapsed Variational Bayesian Inference for Latent Dirichlet Allocation][SCVB0]
 
-<!-->
+<!--
 1. [Geva, Shlomo & De Vries, Christopher M (2011). TOPSIG : Topology Preserving Document Signatures.](https://eprints.qut.edu.au/43451/4/43451.pdf)
 -->
 
