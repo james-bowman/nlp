@@ -31,62 +31,30 @@ func (l LearningSchedule) Calc(iteration float64) float64 {
 	return l.S / math.Pow(l.Tau+iteration, l.Kappa)
 }
 
-type ldaWorkspace struct {
-	K          int
-	topicPool  sync.Pool
-	matrixPool sync.Pool
+type ldaMiniBatch struct {
+	start, end int
+	nPhiHat    []float64
+	nZHat      []float64
+	gamma      []float64
 }
 
-func newLdaWorkspace(k int) *ldaWorkspace {
-	l := ldaWorkspace{
-		K: k,
-		topicPool: sync.Pool{
-			New: func() interface{} {
-				return make([]float64, k)
-			},
-		},
-		matrixPool: sync.Pool{
-			New: func() interface{} {
-				return make([]float64, k*100)
-			},
-		},
+func newLdaMiniBatch(topics int, words int) *ldaMiniBatch {
+	l := ldaMiniBatch{
+		nPhiHat: make([]float64, topics*words),
+		nZHat:   make([]float64, topics),
+		gamma:   make([]float64, topics),
 	}
-
 	return &l
 }
 
-func (l *ldaWorkspace) leaseFloatsForTopics(clear bool) []float64 {
-	w := l.topicPool.Get().([]float64)
-	if clear {
-		for i := range w {
-			w[i] = 0
-		}
+func (l *ldaMiniBatch) reset() {
+	for i := range l.nPhiHat {
+		l.nPhiHat[i] = 0
 	}
-	return w
-}
-
-func (l *ldaWorkspace) returnFloatsForTopics(w []float64) {
-	l.topicPool.Put(w)
-}
-
-func (l *ldaWorkspace) leaseFloatsForMatrix(dims int, clear bool) []float64 {
-	size := dims * l.K
-	w := l.matrixPool.Get().([]float64)
-	if size <= cap(w) {
-		w = w[:size]
-		if clear {
-			for i := range w {
-				w[i] = 0
-			}
-		}
-		return w
+	for i := range l.nZHat {
+		l.nZHat[i] = 0
 	}
-	w = make([]float64, size)
-	return w
-}
-
-func (l *ldaWorkspace) returnFloatsForMatrix(w []float64) {
-	l.matrixPool.Put(w)
+	// assume gamma does not need to be zeroed between mini batches
 }
 
 // LatentDirichletAllocation (LDA) for fast unsupervised topic extraction.  Parallel implemention
@@ -114,8 +82,6 @@ type LatentDirichletAllocation struct {
 	// K is the number of topics
 	K int
 
-	w, d int
-
 	// NumBurnInPasses is the number of `burn-in` passes across the documents in the
 	// training data to learn the document statistics before we start collecting topic statistics.
 	BurnInPasses int
@@ -136,26 +102,26 @@ type LatentDirichletAllocation struct {
 
 	// Alpha is the prior of theta (the documents over topics distribution)
 	Alpha float64
+
 	// Eta is the prior of phi (the topics over words distribution)
 	Eta float64
+
 	// RhoPhi is the learning rate for phi (the topics over words distribution)
 	RhoPhi LearningSchedule
+
 	// RhoTheta is the learning rate for theta (the documents over topics distribution)
 	RhoTheta LearningSchedule
 
 	rhoPhiT   float64
 	rhoThetaT float64
 
-	sum float64
+	wordsInCorpus float64
+	w, d          int
 
 	// Rnd is the random number generator used to generate the initial distributions
 	// for nTheta (the document over topic distribution), nPhi (the topic over word
 	// distribution) and nZ (the topic assignments).
 	Rnd *rand.Rand
-
-	// workspace holds sync.Pool instances for reusing allocated memory for temporary
-	// working storage between iterations and go routines.
-	workspace *ldaWorkspace
 
 	// mutexes for updating global topic statistics
 	phiMutex sync.RWMutex
@@ -166,7 +132,7 @@ type LatentDirichletAllocation struct {
 	Processes int
 
 	// nPhi is the topics over words distribution
-	nPhi *mat.Dense
+	nPhi []float64
 
 	// nZ is the topic assignments
 	nZ []float64
@@ -178,9 +144,6 @@ func NewLatentDirichletAllocation(k int) *LatentDirichletAllocation {
 	// TODO:
 	// - Add FitPartial (and FitPartialTransform?) methods
 	// - Add unit tests, documentation and benchmarks
-	// - consider building nTheta as a slice rather than matrix then constructing the matrix
-	// to avoid At() and Set() method calls
-	// once finished transforming
 	// - refactor word counting
 	// - rename and check rhoTheta_t and rhoPhi_t
 	// - Check visibilitiy of member variables
@@ -218,7 +181,6 @@ func NewLatentDirichletAllocation(k int) *LatentDirichletAllocation {
 		rhoPhiT:   1,
 		rhoThetaT: 1,
 		Rnd:       rand.New(rand.NewSource(uint64(time.Now().UnixNano()))),
-		workspace: newLdaWorkspace(k),
 		Processes: runtime.GOMAXPROCS(0),
 	}
 
@@ -230,16 +192,14 @@ func NewLatentDirichletAllocation(k int) *LatentDirichletAllocation {
 func (l *LatentDirichletAllocation) init(m mat.Matrix) {
 	r, c := m.Dims()
 	l.w, l.d = r, c
-
-	l.nPhi = mat.NewDense(l.K, r, nil)
+	l.nPhi = make([]float64, l.K*r)
 	l.nZ = make([]float64, l.K)
 
 	var v float64
 
 	for i := 0; i < r; i++ {
 		for k := 0; k < l.K; k++ {
-			v = float64((l.Rnd.Int() % (r * l.K))) / float64(r*l.K)
-			l.nPhi.Set(k, i, v)
+			l.nPhi[k*l.w+i] = float64((l.Rnd.Int() % (r * l.K))) / float64(r*l.K)
 			l.nZ[k] += v
 		}
 	}
@@ -255,52 +215,46 @@ func (l *LatentDirichletAllocation) Fit(m mat.Matrix) Transformer {
 
 // burnInDoc calculates document statistics as part of fitting and transforming new
 // documents
-func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matrix, wc float64, nTheta *mat.Dense) {
+func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matrix, wc float64, gamma *[]float64, nTheta []float64) {
 	var rhoTheta float64
-	//gamma := make([]float64, l.K)
-	gamma := l.workspace.leaseFloatsForTopics(false)
-	current := l.workspace.leaseFloatsForTopics(false)
-	prev := l.workspace.leaseFloatsForTopics(false)
-	defer func() {
-		l.workspace.returnFloatsForTopics(prev)
-		l.workspace.returnFloatsForTopics(current)
-		l.workspace.returnFloatsForTopics(gamma)
-	}()
+	_, c := m.Dims()
+	var sum, prevSum float64
+	var thetaInd int
+
 	for counter := 1; counter <= iterations; counter++ {
-		if l.ChangeEvaluationFrequency > 0 &&
-			counter%l.ChangeEvaluationFrequency == 0 &&
-			1 < iterations {
-			prev = mat.Col(prev, j, nTheta)
+		if l.ChangeEvaluationFrequency > 0 && counter%l.ChangeEvaluationFrequency == 0 && 1 < iterations {
+			// take a copy of current column j
+			prevSum = 0
+			for k := 0; k < l.K; k++ {
+				prevSum += nTheta[k*c+j]
+			}
 		}
 		rhoTheta = l.RhoTheta.Calc(l.rhoThetaT + float64(counter))
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			var gammaSum float64
 			for k := 0; k < l.K; k++ {
 				// Eqn. 5.
-				gamma[k] = ((l.nPhi.At(k, i) + l.Eta) * (nTheta.At(k, j) + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
-				gammaSum += gamma[k]
+				(*gamma)[k] = ((l.nPhi[k*l.w+i] + l.Eta) * (nTheta[k*c+j] + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
+				gammaSum += (*gamma)[k]
 			}
 
 			for k := 0; k < l.K; k++ {
-				gamma[k] /= gammaSum
+				(*gamma)[k] /= gammaSum
 			}
 
 			for k := 0; k < l.K; k++ {
 				// Eqn. 9.
-				nt := ((math.Pow((1.0-rhoTheta), v) * nTheta.At(k, j)) +
-					((1 - math.Pow((1.0-rhoTheta), v)) * wc * gamma[k]))
-				nTheta.Set(k, j, nt)
+				thetaInd = k*c + j
+				nTheta[thetaInd] = ((math.Pow((1.0-rhoTheta), v) * nTheta[thetaInd]) +
+					((1 - math.Pow((1.0-rhoTheta), v)) * wc * (*gamma)[k]))
 			}
 		})
-		if l.ChangeEvaluationFrequency > 0 &&
-			counter%l.ChangeEvaluationFrequency == 0 &&
-			counter < iterations {
-			current = mat.Col(current, j, nTheta)
-			var sum float64
-			for i, v := range prev {
-				sum += math.Abs(v - current[i])
+		if l.ChangeEvaluationFrequency > 0 && counter%l.ChangeEvaluationFrequency == 0 && counter < iterations {
+			sum = 0
+			for k := 0; k < l.K; k++ {
+				sum += nTheta[k*c+j]
 			}
-			if sum/float64(l.K) < l.MeanChangeTolerance {
+			if math.Abs(sum-prevSum)/float64(l.K) < l.MeanChangeTolerance {
 				break
 			}
 		}
@@ -310,45 +264,37 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 // fitMiniBatch fits a proportion of the matrix using columns cStart to cEnd.  The
 // algorithm is stochastic and so estimates across the batch and then applies those
 // estimates to the global statistics.
-func (l *LatentDirichletAllocation) fitMiniBatch(cStart, cEnd int, wc []float64, nTheta *mat.Dense, m mat.Matrix) {
-	nPhiHatData := l.workspace.leaseFloatsForMatrix(l.w, true)
-	nPhiHat := mat.NewDense(l.K, l.w, nPhiHatData)
-	nZHat := l.workspace.leaseFloatsForTopics(true)
-	gamma := l.workspace.leaseFloatsForTopics(false)
-	defer func() {
-		l.workspace.returnFloatsForTopics(gamma)
-		l.workspace.returnFloatsForTopics(nZHat)
-		l.workspace.returnFloatsForMatrix(nPhiHatData)
-	}()
-
+func (l *LatentDirichletAllocation) fitMiniBatch(miniBatch *ldaMiniBatch, wc []float64, nTheta []float64, m mat.Matrix) {
 	var rhoTheta float64
-	batchSize := cEnd - cStart
+	batchSize := miniBatch.end - miniBatch.start
+	_, c := m.Dims()
+	var phiInd, thetaInd int
 
-	for j := cStart; j < cEnd; j++ {
-		l.burnInDoc(j, l.BurnInPasses, m, wc[j], nTheta)
+	for j := miniBatch.start; j < miniBatch.end; j++ {
+		l.burnInDoc(j, l.BurnInPasses, m, wc[j], &miniBatch.gamma, nTheta)
 
 		rhoTheta = l.RhoTheta.Calc(l.rhoThetaT + float64(l.BurnInPasses))
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			var gammaSum float64
 			for k := 0; k < l.K; k++ {
 				// Eqn. 5.
-				gamma[k] = ((l.nPhi.At(k, i) + l.Eta) * (nTheta.At(k, j) + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
-				gammaSum += gamma[k]
+				miniBatch.gamma[k] = ((l.nPhi[k*l.w+i] + l.Eta) * (nTheta[k*c+j] + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
+				gammaSum += miniBatch.gamma[k]
 			}
 			for k := 0; k < l.K; k++ {
-				gamma[k] /= gammaSum
+				miniBatch.gamma[k] /= gammaSum
 			}
 
 			for k := 0; k < l.K; k++ {
 				// Eqn. 9.
-				nt := ((math.Pow((1.0-rhoTheta), v) * nTheta.At(k, j)) +
-					((1 - math.Pow((1.0-rhoTheta), v)) * wc[j] * gamma[k]))
-				nTheta.Set(k, j, nt)
+				thetaInd = k*c + j
+				nTheta[thetaInd] = ((math.Pow((1.0-rhoTheta), v) * nTheta[thetaInd]) +
+					((1 - math.Pow((1.0-rhoTheta), v)) * wc[j] * miniBatch.gamma[k]))
 
 				// calculate sufficient stats
-				nv := l.sum * gamma[k] / float64(batchSize)
-				nPhiHat.Set(k, i, nPhiHat.At(k, i)+nv)
-				nZHat[k] += nv
+				nv := l.wordsInCorpus * miniBatch.gamma[k] / float64(batchSize)
+				miniBatch.nPhiHat[k*l.w+i] += nv
+				miniBatch.nZHat[k] += nv
 			}
 		})
 	}
@@ -358,57 +304,57 @@ func (l *LatentDirichletAllocation) fitMiniBatch(cStart, cEnd int, wc []float64,
 		l.phiMutex.Lock()
 		// Eqn. 7.
 		for w := 0; w < l.w; w++ {
-			l.nPhi.Set(k, w, ((1.0-rhoPhi)*l.nPhi.At(k, w))+(rhoPhi*nPhiHat.At(k, w)))
+			phiInd = k*l.w + w
+			l.nPhi[phiInd] = ((1.0 - rhoPhi) * l.nPhi[phiInd]) + (rhoPhi * miniBatch.nPhiHat[phiInd])
 		}
 		l.phiMutex.Unlock()
 
 		l.zMutex.Lock()
 		// Eqn. 8.
-		l.nZ[k] = ((1.0 - rhoPhi) * l.nZ[k]) + (rhoPhi * nZHat[k])
+		l.nZ[k] = ((1.0 - rhoPhi) * l.nZ[k]) + (rhoPhi * miniBatch.nZHat[k])
 		l.zMutex.Unlock()
 	}
 }
 
 // normaliseTheta normalises the document over topic distribution.  All values for each document
 // are divided by the sum of all values for the document.
-func (l *LatentDirichletAllocation) normaliseTheta(theta mat.Matrix, thetaProb *mat.Dense) *mat.Dense {
+func (l *LatentDirichletAllocation) normaliseTheta(theta []float64, result []float64) []float64 {
 	//adjustment := l.Alpha
 	adjustment := 0.0
-	r, c := theta.Dims()
-	if thetaProb == nil {
-		thetaProb = mat.NewDense(r, c, nil)
+	c := len(theta) / l.K
+	if result == nil {
+		result = make([]float64, l.K*c)
 	}
 	for j := 0; j < c; j++ {
 		var sum float64
 		for k := 0; k < l.K; k++ {
-			sum += theta.At(k, j) + adjustment
+			sum += theta[k*c+j] + adjustment
 		}
 		for k := 0; k < l.K; k++ {
-			thetaProb.Set(k, j, (theta.At(k, j)+adjustment)/sum)
+			result[k*c+j] = (theta[k*c+j] + adjustment) / sum
 		}
 	}
-	return thetaProb
+	return result
 }
 
 // normalisePhi normalises the topic over word distribution.  All values for each topic
 // are divided by the sum of all values for the topic.
-func (l *LatentDirichletAllocation) normalisePhi(phi mat.Matrix, phiProb *mat.Dense) *mat.Dense {
+func (l *LatentDirichletAllocation) normalisePhi(phi []float64, result []float64) []float64 {
 	//adjustment := l.Eta
 	adjustment := 0.0
-	r, c := phi.Dims()
-	if phiProb == nil {
-		phiProb = mat.NewDense(r, c, nil)
+	if result == nil {
+		result = make([]float64, l.K*l.w)
 	}
 	for k := 0; k < l.K; k++ {
 		var sum float64
-		for i := 0; i < c; i++ {
-			sum += phi.At(k, i) + adjustment
+		for i := 0; i < l.w; i++ {
+			sum += phi[k*l.w+i] + adjustment
 		}
-		for i := 0; i < c; i++ {
-			phiProb.Set(k, i, (phi.At(k, i)+adjustment)/sum)
+		for i := 0; i < l.w; i++ {
+			result[k*l.w+i] = (phi[k*l.w+i] + adjustment) / sum
 		}
 	}
-	return phiProb
+	return result
 }
 
 // Perplexity calculates the perplexity of the matrix m against the trained model.
@@ -418,47 +364,39 @@ func (l *LatentDirichletAllocation) Perplexity(m mat.Matrix) float64 {
 	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
 		m = t.ToCSC()
 	}
-	var sum float64
+	var wordCount float64
+	r, c := m.Dims()
 
 	if s, isSparse := m.(sparse.Sparser); isSparse {
 		s.DoNonZero(func(i, j int, v float64) {
-			sum += v
+			wordCount += v
 		})
 	} else {
-		r, c := m.Dims()
 		for i := 0; i < r; i++ {
 			for j := 0; j < c; j++ {
-				sum += m.At(i, j)
+				wordCount += m.At(i, j)
 			}
 		}
 	}
 
 	theta := l.unNormalisedTransform(m)
-	return l.perplexity(m, sum, l.normaliseTheta(theta, theta), l.normalisePhi(l.nPhi, nil))
+
+	return l.perplexity(m, wordCount, l.normaliseTheta(theta, theta), l.normalisePhi(l.nPhi, nil))
 }
 
 // perplexity returns the perplexity of the matrix against the model.
-func (l *LatentDirichletAllocation) perplexity(m mat.Matrix, sum float64, nTheta *mat.Dense, nPhi *mat.Dense) float64 {
+func (l *LatentDirichletAllocation) perplexity(m mat.Matrix, sum float64, nTheta []float64, nPhi []float64) float64 {
 	_, c := m.Dims()
 	var perplexity float64
 	var ttlLogWordProb float64
 
-	phiData := l.workspace.leaseFloatsForTopics(false)
-	thetaData := l.workspace.leaseFloatsForTopics(false)
-
-	phiCol := mat.NewVecDense(l.K, phiData)
-	thetaCol := mat.NewVecDense(l.K, thetaData)
-
-	defer func() {
-		l.workspace.returnFloatsForTopics(thetaData)
-		l.workspace.returnFloatsForTopics(phiData)
-	}()
-
 	for j := 0; j < c; j++ {
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
-			phiCol.ColViewOf(nPhi, i)
-			thetaCol.ColViewOf(nTheta, j)
-			ttlLogWordProb += math.Log2(mat.Dot(phiCol, thetaCol)) * v
+			var dot float64
+			for k := 0; k < l.K; k++ {
+				dot += nPhi[k*l.w+i] * nTheta[k*c+j]
+			}
+			ttlLogWordProb += math.Log2(dot) * v
 		})
 	}
 	perplexity = math.Exp2(-ttlLogWordProb / sum)
@@ -470,12 +408,12 @@ func (l *LatentDirichletAllocation) perplexity(m mat.Matrix, sum float64, nTheta
 // and each column represents a unique words in the vocabulary and K is the number of
 // topics.
 func (l *LatentDirichletAllocation) Components() mat.Matrix {
-	return l.normalisePhi(l.nPhi, nil)
+	return mat.NewDense(l.K, l.w, l.normalisePhi(l.nPhi, nil))
 }
 
 // unNormalisedTransform performs an unNormalisedTransform - the output
 // needs to be normalised using normaliseTheta before use.
-func (l *LatentDirichletAllocation) unNormalisedTransform(m mat.Matrix) *mat.Dense {
+func (l *LatentDirichletAllocation) unNormalisedTransform(m mat.Matrix) []float64 {
 	_, c := m.Dims()
 	datalen := l.K * c
 	data := make([]float64, datalen)
@@ -483,16 +421,16 @@ func (l *LatentDirichletAllocation) unNormalisedTransform(m mat.Matrix) *mat.Den
 		//data[i] = rnd.Float64() + 0.5
 		data[i] = float64((l.Rnd.Int() % (c * l.K))) / float64(c*l.K)
 	}
-	prod := mat.NewDense(l.K, c, data)
+	gamma := make([]float64, l.K)
 
 	for j := 0; j < c; j++ {
 		var wc float64
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			wc += v
 		})
-		l.burnInDoc(j, l.TransformationPasses, m, wc, prod)
+		l.burnInDoc(j, l.TransformationPasses, m, wc, &gamma, data)
 	}
-	return prod
+	return data
 }
 
 // Transform transforms the input matrix into a matrix representing the distribution
@@ -506,10 +444,9 @@ func (l *LatentDirichletAllocation) Transform(m mat.Matrix) (mat.Matrix, error) 
 	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
 		m = t.ToCSC()
 	}
-
-	prod := l.unNormalisedTransform(m)
-
-	return l.normaliseTheta(prod, prod), nil
+	_, c := m.Dims()
+	theta := l.unNormalisedTransform(m)
+	return mat.NewDense(l.K, c, l.normaliseTheta(theta, theta)), nil
 }
 
 // FitTransform is approximately equivalent to calling Fit() followed by Transform()
@@ -529,16 +466,20 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 
 	_, c := m.Dims()
 
-	nTheta := mat.NewDense(l.K, c, nil)
+	nTheta := make([]float64, l.K*c)
 	for j := 0; j < c; j++ {
 		for k := 0; k < l.K; k++ {
-			nTheta.Set(k, j, float64((l.Rnd.Int()%(c*l.K)))/float64(c*l.K))
+			nTheta[k*c+j] = float64((l.Rnd.Int() % (c * l.K))) / float64(c*l.K)
 		}
 	}
-	var phiProb *mat.Dense
-	var thetaProb *mat.Dense
+	var phiProb []float64
+	var thetaProb []float64
 
 	numMiniBatches := int(math.Ceil(float64(c) / float64(l.BatchSize)))
+	miniBatches := make([]*ldaMiniBatch, l.Processes)
+	for i := range miniBatches {
+		miniBatches[i] = newLdaMiniBatch(l.K, l.w)
+	}
 
 	wc := make([]float64, c)
 
@@ -546,7 +487,7 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			wc[j] += v
 		})
-		l.sum += wc[j]
+		l.wordsInCorpus += wc[j]
 	}
 
 	l.rhoPhiT = 1
@@ -561,18 +502,19 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 
 		for process := 0; process < l.Processes; process++ {
 			wg.Add(1)
-			go func() {
+			go func(p int) {
 				defer wg.Done()
 				for j := range mb {
-					var end int
+					miniBatches[p].reset()
+					miniBatches[p].start = j * l.BatchSize
 					if j < numMiniBatches-1 {
-						end = j*l.BatchSize + l.BatchSize
+						miniBatches[p].end = miniBatches[p].start + l.BatchSize
 					} else {
-						end = c
+						miniBatches[p].end = c
 					}
-					l.fitMiniBatch(j*l.BatchSize, end, wc, nTheta, m)
+					l.fitMiniBatch(miniBatches[p], wc, nTheta, m)
 				}
-			}()
+			}(process)
 		}
 
 		for j := 0; j < numMiniBatches; j++ {
@@ -585,7 +527,7 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 			(it+1)%l.PerplexityEvaluationFrequency == 0 {
 			phiProb = l.normalisePhi(l.nPhi, phiProb)
 			thetaProb = l.normaliseTheta(nTheta, thetaProb)
-			perplexity = l.perplexity(m, l.sum, thetaProb, phiProb)
+			perplexity = l.perplexity(m, l.wordsInCorpus, thetaProb, phiProb)
 
 			if prevPerplexity != 0 && math.Abs(prevPerplexity-perplexity) < l.PerplexityTolerance {
 				break
@@ -594,5 +536,5 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 		}
 	}
 
-	return l.normaliseTheta(nTheta, thetaProb), nil
+	return mat.NewDense(l.K, c, l.normaliseTheta(nTheta, thetaProb)), nil
 }
