@@ -57,12 +57,14 @@ func (l *ldaMiniBatch) reset() {
 	// assume gamma does not need to be zeroed between mini batches
 }
 
-// LatentDirichletAllocation (LDA) for fast unsupervised topic extraction.  Parallel implemention
-// of the
-// [SCVB0 (Stochastic Collapsed Variational Bayes) Algorithm](https://arxiv.org/pdf/1305.2452.pdf)
-// by Jimmy Foulds with optional `clumping` optimisations.  Outputs matrices with a column for
-// each document represented by columns in the input matrices.  Each document in the output
-// is represented as the probability distribution over topics.
+// LatentDirichletAllocation (LDA) for fast unsupervised topic extraction.  LDA processes
+// documents and learns their latent topic model estimating the posterior document over topic
+// probability distribution (the probabilities of each document being allocated to each
+// topic) and the posterior topic over word probability distribution.
+//
+// This transformer uses a parallel implemention of the
+// SCVB0 (Stochastic Collapsed Variational Bayes) Algorithm (https://arxiv.org/pdf/1305.2452.pdf)
+// by Jimmy Foulds with optional `clumping` optimisations.
 type LatentDirichletAllocation struct {
 	// Iterations is the maximum number of training iterations
 	Iterations int
@@ -143,7 +145,6 @@ type LatentDirichletAllocation struct {
 func NewLatentDirichletAllocation(k int) *LatentDirichletAllocation {
 	// TODO:
 	// - Add FitPartial (and FitPartialTransform?) methods
-	// - Add unit tests, documentation and benchmarks
 	// - refactor word counting
 	// - rename and check rhoTheta_t and rhoPhi_t
 	// - Check visibilitiy of member variables
@@ -261,8 +262,8 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 	}
 }
 
-// fitMiniBatch fits a proportion of the matrix using columns cStart to cEnd.  The
-// algorithm is stochastic and so estimates across the batch and then applies those
+// fitMiniBatch fits a proportion of the matrix as specified by miniBatch.  The
+// algorithm is stochastic and so estimates across the minibatch and then applies those
 // estimates to the global statistics.
 func (l *LatentDirichletAllocation) fitMiniBatch(miniBatch *ldaMiniBatch, wc []float64, nTheta []float64, m mat.Matrix) {
 	var rhoTheta float64
@@ -316,8 +317,9 @@ func (l *LatentDirichletAllocation) fitMiniBatch(miniBatch *ldaMiniBatch, wc []f
 	}
 }
 
-// normaliseTheta normalises the document over topic distribution.  All values for each document
-// are divided by the sum of all values for the document.
+// normaliseTheta normalises theta to derive the posterior probability estimates for
+// documents over topics.  All values for each document are divided by the sum of all
+// values for the document.
 func (l *LatentDirichletAllocation) normaliseTheta(theta []float64, result []float64) []float64 {
 	//adjustment := l.Alpha
 	adjustment := 0.0
@@ -337,8 +339,9 @@ func (l *LatentDirichletAllocation) normaliseTheta(theta []float64, result []flo
 	return result
 }
 
-// normalisePhi normalises the topic over word distribution.  All values for each topic
-// are divided by the sum of all values for the topic.
+// normalisePhi normalises phi to derive the posterior probability estimates for
+// topics over words.  All values for each topic are divided by the sum of all values
+// for the topic.
 func (l *LatentDirichletAllocation) normalisePhi(phi []float64, result []float64) []float64 {
 	//adjustment := l.Eta
 	adjustment := 0.0
@@ -358,8 +361,8 @@ func (l *LatentDirichletAllocation) normalisePhi(phi []float64, result []float64
 }
 
 // Perplexity calculates the perplexity of the matrix m against the trained model.
-// m is first transformed into corresponding document over topic distributions and
-// then used to calculate the perplexity.
+// m is first transformed into corresponding posterior estimates for document over topic
+// distributions and then used to calculate the perplexity.
 func (l *LatentDirichletAllocation) Perplexity(m mat.Matrix) float64 {
 	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
 		m = t.ToCSC()
@@ -476,13 +479,16 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 	var thetaProb []float64
 
 	numMiniBatches := int(math.Ceil(float64(c) / float64(l.BatchSize)))
-	miniBatches := make([]*ldaMiniBatch, l.Processes)
+	processes := l.Processes
+	if numMiniBatches < l.Processes {
+		processes = numMiniBatches
+	}
+	miniBatches := make([]*ldaMiniBatch, processes)
 	for i := range miniBatches {
 		miniBatches[i] = newLdaMiniBatch(l.K, l.w)
 	}
 
 	wc := make([]float64, c)
-
 	for j := 0; j < c; j++ {
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			wc[j] += v
@@ -500,21 +506,21 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 		mb := make(chan int)
 		var wg sync.WaitGroup
 
-		for process := 0; process < l.Processes; process++ {
+		for process := 0; process < processes; process++ {
 			wg.Add(1)
-			go func(p int) {
+			go func(miniBatch *ldaMiniBatch) {
 				defer wg.Done()
 				for j := range mb {
-					miniBatches[p].reset()
-					miniBatches[p].start = j * l.BatchSize
+					miniBatch.reset()
+					miniBatch.start = j * l.BatchSize
 					if j < numMiniBatches-1 {
-						miniBatches[p].end = miniBatches[p].start + l.BatchSize
+						miniBatch.end = miniBatch.start + l.BatchSize
 					} else {
-						miniBatches[p].end = c
+						miniBatch.end = c
 					}
-					l.fitMiniBatch(miniBatches[p], wc, nTheta, m)
+					l.fitMiniBatch(miniBatch, wc, nTheta, m)
 				}
-			}(process)
+			}(miniBatches[process])
 		}
 
 		for j := 0; j < numMiniBatches; j++ {
@@ -523,8 +529,7 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 		close(mb)
 		wg.Wait()
 
-		if l.PerplexityEvaluationFrequency > 0 &&
-			(it+1)%l.PerplexityEvaluationFrequency == 0 {
+		if l.PerplexityEvaluationFrequency > 0 && (it+1)%l.PerplexityEvaluationFrequency == 0 {
 			phiProb = l.normalisePhi(l.nPhi, phiProb)
 			thetaProb = l.normaliseTheta(nTheta, thetaProb)
 			perplexity = l.perplexity(m, l.wordsInCorpus, thetaProb, phiProb)

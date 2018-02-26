@@ -1,11 +1,13 @@
-package nlp
+package nlp_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
 	"golang.org/x/exp/rand"
 
+	"github.com/james-bowman/nlp"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -60,7 +62,7 @@ func TestLDAFit(t *testing.T) {
 
 	for ti, test := range tests {
 		// set Rnd to fixed constant seed for deterministic results
-		lda := NewLatentDirichletAllocation(test.topics)
+		lda := nlp.NewLatentDirichletAllocation(test.topics)
 		lda.Rnd = rand.New(rand.NewSource(uint64(0)))
 
 		in := mat.NewDense(test.r, test.c, test.data)
@@ -147,7 +149,7 @@ func TestLDAFitTransform(t *testing.T) {
 
 	for ti, test := range tests {
 		// set Rnd to fixed constant seed for deterministic results
-		lda := NewLatentDirichletAllocation(test.topics)
+		lda := nlp.NewLatentDirichletAllocation(test.topics)
 		lda.Rnd = rand.New(rand.NewSource(uint64(0)))
 
 		in := mat.NewDense(test.r, test.c, test.data)
@@ -212,7 +214,7 @@ func TestLDATransform(t *testing.T) {
 
 	for ti, test := range tests {
 		// set Rnd to fixed constant seed for deterministic results
-		lda := NewLatentDirichletAllocation(test.topics)
+		lda := nlp.NewLatentDirichletAllocation(test.topics)
 		lda.Rnd = rand.New(rand.NewSource(uint64(0)))
 		lda.PerplexityEvaluationFrequency = 2
 
@@ -226,6 +228,55 @@ func TestLDATransform(t *testing.T) {
 
 		if !mat.EqualApprox(theta, tTheta, 0.01) {
 			t.Errorf("Test %d: Transformed matrix not equal to FitTransformed\nExpected:\n %v\nbut received:\n %v\n", ti, mat.Formatted(theta), mat.Formatted(tTheta))
+		}
+	}
+}
+
+func ExampleLatentDirichletAllocation() {
+	corpus := []string{
+		"The quick brown fox jumped over the lazy dog",
+		"The cow jumped over the moon",
+		"The little dog laughed to see such fun",
+	}
+
+	// Create a pipeline with a count vectoriser and LDA transformer for 2 topics
+	vectoriser := nlp.NewCountVectoriser(true)
+	lda := nlp.NewLatentDirichletAllocation(2)
+	pipeline := nlp.NewPipeline(vectoriser, lda)
+
+	docsOverTopics, err := pipeline.FitTransform(corpus...)
+	if err != nil {
+		fmt.Printf("Failed to model topics for documents because %v", err)
+		return
+	}
+
+	// Examine Document over topic probability distribution
+	dr, dc := docsOverTopics.Dims()
+	for doc := 0; doc < dc; doc++ {
+		fmt.Printf("\nTopic distribution for document: '%s' -", corpus[doc])
+		for topic := 0; topic < dr; topic++ {
+			if topic > 0 {
+				fmt.Printf(",")
+			}
+			fmt.Printf(" Topic #%d=%f", topic, docsOverTopics.At(topic, doc))
+		}
+	}
+
+	// Examine Topic over word probability distribution
+	topicsOverWords := lda.Components()
+	tr, tc := topicsOverWords.Dims()
+	vocabInd := vectoriser.Vocabulary
+	vocab := make([]string, len(vocabInd))
+	for k, v := range vocabInd {
+		vocab[v] = k
+	}
+	for topic := 0; topic < tr; topic++ {
+		fmt.Printf("\nWord distribution for Topic #%d -", topic)
+		for word := 0; word < tc; word++ {
+			if word > 0 {
+				fmt.Printf(",")
+			}
+			fmt.Printf(" '%s'=%f", vocab[word], topicsOverWords.At(topic, word))
 		}
 	}
 }
