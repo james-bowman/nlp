@@ -28,15 +28,15 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 * [Sparse matrix](http://github.com/james-bowman/sparse) implementations used for more efficient memory usage and processing over large document corpora.
 * Stop word removal to remove frequently occuring English words e.g. "the", "and"
 * [Feature hashing](https://en.wikipedia.org/wiki/Feature_hashing) ('the hashing trick') implementation (using [MurmurHash3](http://github.com/spaolacci/murmur3)) for reduced memory requirements and reduced reliance on training data
-* Cosine, Angular and Hamming similarity/distance measures to calculate the similarity/distance between document feature vectors.
-* Persistence for trained models (persistence for Vectorisers coming soon)
+* Similarity/distance measures to calculate the similarity/distance between feature vectors.
 
 ## Planned
 
-* Ability to persist trained vectorisers
+* Expanded persistence support
 * Stemming to treat words with common root as the same e.g. "go" and "going"
+* Other indexing structures for Nearest Neighbour search.
 * Clustering algorithms e.g. Heirachical, K-means, etc.
-* Classification algorithms e.g. SVM, random forest, etc.
+* Classification algorithms e.g. SVM, KNN, random forest, etc.
 
 ## References
 
