@@ -11,11 +11,11 @@ These matrices can be processed and manipulated through the application of addit
 
 Typically the algorithms in this package implement one of three primary interfaces:
 
-	Vectoriser - Taking document input as strings and outputting matrices of numerical features.
-	Transformer - Takes matrices of numerical features and applies logic/transformation to output a new matrix.
+	Vectoriser - Taking document input as strings and outputting matrices of numerical features e.g. term frequency.
+	Transformer - Takes matrices of numerical features and applies some logic/transformation to output a new matrix.
 	Comparer - Functions taking two vectors (columns from a matrix) and outputting a distance/similarity measure.
 
-One of the implementations of Vectoriser is Pipeline which can be used to wire together pipelines composed of a Vectoriser and one or more Transformers arranged in serial so that the output from each stage forma the input of the next.  This can be used to construct a classic LSI (Latent Semantic Indexing) pipeline (vectoriser -> TF.IDF weighting -> Truncated SVD):
+One of the implementations of Vectoriser is Pipeline which can be used to wire together pipelines composed of a Vectoriser and one or more Transformers arranged in serial so that the output from each stage forms the input of the next.  This can be used to construct a classic LSI (Latent Semantic Indexing) pipeline (vectoriser -> TF.IDF weighting -> Truncated SVD):
 
 	pipeline := nlp.NewPipeline(
 		nlp.NewCountVectoriser(true),
@@ -26,7 +26,7 @@ One of the implementations of Vectoriser is Pipeline which can be used to wire t
 Whilst they take different inputs, both Vectorisers and Transformers have 3 primary methods:
 
 	Fit() - Trains the model based upon the supplied, input training data.
-	Transform() - Transforms the input into the output matrix (requires the model to be already fitted by a previous call to Fit or FitTransform).
-	FitTransform() - Convenience method combining Fit and Transform methods so that the model is both trained and used to transform the data within a single step.
+	Transform() - Transforms the input into the output matrix (requires the model to be already fitted by a previous call to Fit() or FitTransform()).
+	FitTransform() - Convenience method combining Fit() and Transform() methods to transform input data, fitting the model to the input data in the process.
 */
 package nlp
