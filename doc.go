@@ -13,6 +13,7 @@ Typically the algorithms in this package implement one of two interfaces:
 
 	Vectoriser - Taking document input as strings and outputting matrices of numerical features.
 	Transformer - Takes matrices of numerical features and applies logic/transformation to output a new matrix.
+	Comparer - Functions taking two vectors (columns from a matrix) and outputting a distance/similarity measure.
 
 One of the implementations of Vectoriser is Pipeline which can be used to wire together pipelines composed of a Vectoriser and one or more Transformers arranged in serial so that the output from each stage forma the input of the next.  This can be used to construct a classic LSI (Latent Semantic Indexing) pipeline (vectoriser -> TF.IDF weighting -> Truncated SVD):
 
@@ -22,12 +23,10 @@ One of the implementations of Vectoriser is Pipeline which can be used to wire t
 		nlp.NewTruncatedSVD(100),
 	)
 
-A common transformation is `TF.IDF`` for the purpose of weighting features to remove natural biases which would skew results e.g. commonly occurring words like `the`, `of`, `and`, etc. which should carry lower weight than unusual words.
+Whilst they take different inputs, both Vectorisers and Transformers have 3 primary methods:
 
-Term Document matrices typically have a very large number of dimensions which can cause issues with memory and performance but also skew distance/similarity measures in vector space.  Transformations are often applied to reduce the dimensionality using techniques such as Random Projection, Principal Component Analysis and Singular Value Decomposition.  These approximate the original term document matrix with a new matrix of much lower rank (typically 100s of dimensions rather than 10s or 100s of thousands).
-
-Dimensionality reduction is also an important aspect of NLP techniques like Locality Sensitive Hashing and Latent Semantic Analysis/Indexing (typically performed using matrix SVD - `Singular Value Decomposition` or Random Indexing).  The dimensionality reduction is used to exchange a high-number of features for a much smaller number of 'better' features that represent the latent semantic variables within the document inferred through term co-occurance.
-
-As an obvious conclusion, processed and transformed matrices can be compared for similarity with each other (e.g. for cluster analysis or training a classifier) or with a query (also represented as a feature vector projected into the same dimensional space).  Various pairwise similarity and distance measures are provided within the package to support various use cases.
+	Fit() - Trains the model based upon the supplied, input training data.
+	Transform() - Transforms the input into the output matrix (requires the model to be already fitted by a previous call to Fit or FitTransform).
+	FitTransform() - Convenience method combining Fit and Transform methods so that the model is both trained and used to transform the data within a single step.
 */
 package nlp
