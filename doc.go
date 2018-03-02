@@ -9,7 +9,7 @@ The primary intended use case is to support document input as text strings encod
 
 These matrices can be processed and manipulated through the application of additional transformations for weighting features, identifying relationships or optimising the data for analysis, information retrieval and/or predictions.
 
-Typically the algorithms in this package implement one of two interfaces:
+Typically the algorithms in this package implement one of three primary interfaces:
 
 	Vectoriser - Taking document input as strings and outputting matrices of numerical features.
 	Transformer - Takes matrices of numerical features and applies logic/transformation to output a new matrix.
