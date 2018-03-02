@@ -265,9 +265,8 @@ func ExampleLatentDirichletAllocation() {
 	// Examine Topic over word probability distribution
 	topicsOverWords := lda.Components()
 	tr, tc := topicsOverWords.Dims()
-	vocabInd := vectoriser.Vocabulary
-	vocab := make([]string, len(vocabInd))
-	for k, v := range vocabInd {
+	vocab := make([]string, len(vectoriser.Vocabulary))
+	for k, v := range vectoriser.Vocabulary {
 		vocab[v] = k
 	}
 	for topic := 0; topic < tr; topic++ {

@@ -11,7 +11,7 @@
 
 Implementations of selected machine learning algorithms for natural language processing in golang.  The primary focus for the package is the statistical semantics of plain-text documents supporting semantic analysis and retrieval of semantically similar documents.
 
-Built upon the [Gonum library](http://http://www.gonum.org/) for linear algebra and scientific computing with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/) and [Gensim](https://radimrehurek.com/gensim/).
+Built upon the [Gonum](http://http://www.gonum.org/) package for linear algebra and scientific computing with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/) and [Gensim](https://radimrehurek.com/gensim/).
 
 Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-analysis-of-webpages-with-machine-learning-in-go/) or [the Go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
 
@@ -19,15 +19,15 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 
 ## Features
 
-* [Sparse matrix](http://github.com/james-bowman/sparse) implementations for more efficient memory usage over large document corpora.
-* Stop word removal to remove frequently occuring English words e.g. "the", "and"
-* [Feature hashing](https://en.wikipedia.org/wiki/Feature_hashing)('the hashing trick') implementation (using [MurmurHash3](http://github.com/spaolacci/murmur3)) for reduced memory requirements and reduced reliance on training data
-* [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) weighting to account for frequently occuring words
-* [LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI))](https://en.wikipedia.org/wiki/Latent_semantic_analysis) implementation using truncated [SVD (Singular Value Decomposition)](https://en.wikipedia.org/wiki/Singular-value_decomposition) for dimensionality reduction.
-* [PCA (Principal Component Analysis)](https://en.wikipedia.org/wiki/Principal_component_analysis)
+* [LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI))][LSA] implementation using truncated [SVD (Singular Value Decomposition)](https://en.wikipedia.org/wiki/Singular-value_decomposition) for dimensionality reduction.
 * Fast retrieval of semantically similar documents with [SimHash](https://en.wikipedia.org/wiki/SimHash) implementation of [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) to support fast, approximate cosine similarity using significantly less memory and processing time.
-* [Random Indexing (RI)](https://en.wikipedia.org/wiki/Random_indexing) and Reflective Random Indexing (RRI) (which extends RI to support indirect inference) for scalable [Latent Semantic Analysis (LSA)](https://en.wikipedia.org/wiki/Latent_semantic_analysis) over large, web-scale corpora.
-* [Latent Dirichlet Allocation (LDA)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) using a parallelised implementation of the fast [SCVB0 (Stochastic Collapsed Variational Bayes) algorithm][SCVB0] algorithm for unsupervised topic extraction. 
+* [Random Indexing (RI)](https://en.wikipedia.org/wiki/Random_indexing) and Reflective Random Indexing (RRI) (which extends RI to support indirect inference) for scalable [Latent Semantic Analysis (LSA)][LSA] over large, web-scale corpora.
+* [Latent Dirichlet Allocation (LDA)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) using a parallelised implementation of the fast [SCVB0 (Stochastic Collapsed Variational Bayesian inference)][SCVB0] algorithm for unsupervised topic extraction. 
+* [PCA (Principal Component Analysis)](https://en.wikipedia.org/wiki/Principal_component_analysis)
+* [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) weighting to account for frequently occuring words
+* [Sparse matrix](http://github.com/james-bowman/sparse) implementations used for more efficient memory usage and processing over large document corpora.
+* Stop word removal to remove frequently occuring English words e.g. "the", "and"
+* [Feature hashing](https://en.wikipedia.org/wiki/Feature_hashing) ('the hashing trick') implementation (using [MurmurHash3](http://github.com/spaolacci/murmur3)) for reduced memory requirements and reduced reliance on training data
 * Cosine, Angular and Hamming similarity/distance measures to calculate the similarity/distance between document feature vectors.
 * Persistence for trained models (persistence for Vectorisers coming soon)
 
@@ -55,4 +55,5 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 1. [Geva, Shlomo & De Vries, Christopher M (2011). TOPSIG : Topology Preserving Document Signatures.](https://eprints.qut.edu.au/43451/4/43451.pdf)
 -->
 
+[LSA]: https://en.wikipedia.org/wiki/Latent_semantic_analysis
 [SCVB0]: https://arxiv.org/pdf/1305.2452

@@ -1,22 +1,20 @@
 /*
-Package nlp provides implementations of selected machine learning algorithms for natural language processing of text corpora.  The initial primary focus being on the implementation of algorithms supporting LSA (Latent Semantic Analysis), often referred to as Latent Semantic Indexing in the context of information retrieval.
+Package nlp provides implementations of selected machine learning algorithms for natural language processing of text corpora.  The primary focus is the statistical semantics of plain-text documents supporting semantic analysis and retrieval of semantically similar documents.
+
+The package makes use of the [Gonum](http://http//www.gonum.org/) library for linear algebra and scientific computing with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/) and [Gensim](https://radimrehurek.com/gensim/)
 
 Overview
 
-The algorithms in the package typically support document input as text strings which are then encoded as a matrix of numerical feature vectors called a `term document matrix`.  Columns in this matrix represent the documents in the corpus and the rows represent terms occurring in the documents.  The individual elements within the matrix contains counts of the number of occurrences of each term in the associated document.
+The primary intended use case is to support document input as text strings encoded as a matrix of numerical feature vectors called a `term document matrix`.  Each column in the matrix corresponds to a document in the corpus and each row corresponds to a unique term occurring in the corpus.  The individual elements within the matrix contain the frequency with which each term occurs within each document (referred to as `term frequency`).  Whilst textual data from document corpora are the primary intended use case, the algorithms can be used with other types of data from other sources once encoded (vectorised) into a suitable matrix e.g. image data, sound data, users/products, etc.
 
-This matrix can be manipulated through the application of additional transformations for weighting features, identifying relationships or optimising the data for analysis, information retrieval and/or predictions.
+These matrices can be processed and manipulated through the application of additional transformations for weighting features, identifying relationships or optimising the data for analysis, information retrieval and/or predictions.
 
-A common transformation is for the purpose of weighting features to remove natural biases which would skew results e.g. commonly occurring words like `the`, `of`, `and`, etc. which should carry lower weight than unusual words.
+A common transformation is `TF.IDF`` for the purpose of weighting features to remove natural biases which would skew results e.g. commonly occurring words like `the`, `of`, `and`, etc. which should carry lower weight than unusual words.
 
-Term Document matrices typically have a very large number of dimensions and so transformations are often applied to reduce the dimensionality using techniques such as Locality Sensitive Hashing or Latent Semantic Analysis (typically performed using matrix SVD - `Singular Value Decomposition`) which approximates the original term document matrix with a new matrix of much lower rank (typically around 100 rather than 1000s).  Truncated SVD is a fundamental part of LSA (Latent Semantic Analysis aka Latent Semantic Indexing) and serves a number of purposes:
+Term Document matrices typically have a very large number of dimensions which can cause issues with memory and performance but also skew distance/similarity measures in vector space.  Transformations are often applied to reduce the dimensionality using techniques such as Random Projection, Principal Component Analysis and Singular Value Decomposition.  These approximate the original term document matrix with a new matrix of much lower rank (typically 100s of dimensions rather than 10s or 100s of thousands).
 
-1. The reduced dimensionality of the data theoretically requires less memory.
+Dimensionality reduction is also an important aspect of NLP techniques like Locality Sensitive Hashing and Latent Semantic Analysis/Indexing (typically performed using matrix SVD - `Singular Value Decomposition` or Random Indexing).  The dimensionality reduction is used to exchange a high-number of features for a much smaller number of _better_ features that represent the latent semantic variables within the document inferred through term co-occurance.
 
-2. As less significant dimensions are removed, there is less `noise` in the data which could have artificially skewed results.
-
-3. Perhaps most importantly, the SVD effectively encodes the co-occurrence of terms within the documents to capture semantic meaning rather than simply the presence (or lack of presence) of words.  This combats the problem of synonymy (a common challenge in NLP) where different words in the English language can be used to mean the same thing (synonyms).  In LSA, documents can have a high degree of semantic similarity with very few words in common.
-
-The post SVD matrix (with each column being a feature vector representing a document within the corpus) can be compared for similarity with each other (for clustering) or with a query (also represented as a feature vector projected into the same dimensional space).  Similarity is measured by the angle between the two feature vectors being considered.
+As an obvious conclusion, processed and transformed matrices can be compared for similarity with each other (e.g. for cluster analysis or training a classifier) or with a query (also represented as a feature vector projected into the same dimensional space).  Various pairwise similarity and distance measures are provided within the package to support various use cases.
 */
 package nlp
