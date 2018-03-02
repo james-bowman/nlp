@@ -16,7 +16,11 @@ Typically the algorithms in this package implement one of two interfaces:
 
 One of the implementations of Vectoriser is Pipeline which can be used to wire together pipelines composed of a Vectoriser and one or more Transformers arranged in serial so that the output from each stage forma the input of the next.  This can be used to construct a classic LSI (Latent Semantic Indexing) pipeline (vectoriser -> TF.IDF weighting -> Truncated SVD):
 
-	pipeline := nlp.NewPipeline(nlp.NewCountVectoriser(true), nlp.NewTFIDFTransformer(), nlp.NewTruncatedSVD(100))
+	pipeline := nlp.NewPipeline(
+		nlp.NewCountVectoriser(true),
+		nlp.NewTFIDFTransformer(),
+		nlp.NewTruncatedSVD(100),
+	)
 
 A common transformation is `TF.IDF`` for the purpose of weighting features to remove natural biases which would skew results e.g. commonly occurring words like `the`, `of`, `and`, etc. which should carry lower weight than unusual words.
 
