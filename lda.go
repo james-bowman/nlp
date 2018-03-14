@@ -200,7 +200,8 @@ func (l *LatentDirichletAllocation) init(m mat.Matrix) {
 
 	for i := 0; i < r; i++ {
 		for k := 0; k < l.K; k++ {
-			l.nPhi[k*l.w+i] = float64((l.Rnd.Int() % (r * l.K))) / float64(r*l.K)
+			v = float64((l.Rnd.Int() % (r * l.K))) / float64(r*l.K)
+			l.nPhi[k*l.w+i] = v
 			l.nZ[k] += v
 		}
 	}
