@@ -31,9 +31,9 @@ func ColDo(m mat.Matrix, fn func(j int, vec mat.Vector)) {
 	}
 }
 
-// ColNonZeroElemDo executes fn for each element in column j of matrix m.
-// If m implements mat.ColNonZeroDoer then only non-zero elements
-// will be visited.
+// ColNonZeroElemDo executes fn for each non-zero element in column j of matrix m.
+// If m implements mat.ColNonZeroDoer then this interface will be used to perform
+// the iteration.
 func ColNonZeroElemDo(m mat.Matrix, j int, fn func(i, j int, v float64)) {
 	colNonZeroDoer, isSparse := m.(mat.ColNonZeroDoer)
 	r, _ := m.Dims()
