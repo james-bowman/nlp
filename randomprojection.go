@@ -16,26 +16,26 @@ import (
 // SignRandomProjection represents a transform of a matrix into a lower
 // dimensional space.  Sign Random Projection is a method of Locality
 // Sensitive Hashing (LSH) sometimes referred to as the random hyperplane method.
-// A set of random hyperplanes are projected into dimensional
+// A set of random hyperplanes are created in the original dimensional
 // space and then input matrices are expressed relative to the random
-// projections as follows:
+// hyperplanes as follows:
 //	For each column vector in the input matrix, construct a corresponding output
 // 	bit vector with each bit (i) calculated as follows:
-//		if dot(vector, projection[i]) > 0
+//		if dot(vector, hyperplane[i]) > 0
 // 			bit[i] = 1
 // 		else
 //			bit[i] = 0
-// Similar to other methods of random projection this method is unique in that
-// it uses a single bit in the output matrix to represent the sign of result
-// of the comparison (Dot product) with each projection and so is very space
-// and computationally efficient.
-// Hamming similarity (and distance) between the transformed vectors in this
-// new space can approximate Angular similarity (and distance) (which is strongly
-// related to Cosine similarity) of the associated vectors from the original space
-// with significant reductions in both memory usage and processing time.
+// Whilst similar to other methods of random projection this method is unique in that
+// it uses only a single bit in the output matrix to represent the sign of the result
+// of the comparison (Dot product) with each hyperplane so encodes vector
+// representations with very low memory and processor requirements whilst preserving
+// relative distance between vectors from the original space.
+// Hamming similarity (and distance) between the transformed vectors in the
+// subspace can approximate Angular similarity (and distance) (which is strongly
+// related to Cosine similarity) of the associated vectors from the original space.
 type SignRandomProjection struct {
 	// Bits represents the number of bits the output vectors should
-	// be in length and hence the number of random projections needed
+	// be in length and hence the number of random hyperplanes needed
 	// for the transformation
 	Bits int
 
