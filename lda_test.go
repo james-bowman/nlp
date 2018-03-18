@@ -226,7 +226,7 @@ func TestLDATransform(t *testing.T) {
 
 		tTheta, err := lda.Transform(in)
 
-		if !mat.EqualApprox(theta, tTheta, 0.01) {
+		if !mat.EqualApprox(theta, tTheta, 0.035) {
 			t.Errorf("Test %d: Transformed matrix not equal to FitTransformed\nExpected:\n %v\nbut received:\n %v\n", ti, mat.Formatted(theta), mat.Formatted(tTheta))
 		}
 	}
@@ -265,6 +265,7 @@ func ExampleLatentDirichletAllocation() {
 	// Examine Topic over word probability distribution
 	topicsOverWords := lda.Components()
 	tr, tc := topicsOverWords.Dims()
+
 	vocab := make([]string, len(vectoriser.Vocabulary))
 	for k, v := range vectoriser.Vocabulary {
 		vocab[v] = k

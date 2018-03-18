@@ -126,8 +126,8 @@ type LatentDirichletAllocation struct {
 	Rnd *rand.Rand
 
 	// mutexes for updating global topic statistics
-	phiMutex sync.RWMutex
-	zMutex   sync.RWMutex
+	phiMutex sync.Mutex
+	zMutex   sync.Mutex
 
 	// Processes is the degree of parallelisation, or more specifically, the number of
 	// concurrent go routines to use during fitting.
@@ -195,13 +195,11 @@ func (l *LatentDirichletAllocation) init(m mat.Matrix) {
 	l.w, l.d = r, c
 	l.nPhi = make([]float64, l.K*r)
 	l.nZ = make([]float64, l.K)
-
 	var v float64
-
 	for i := 0; i < r; i++ {
 		for k := 0; k < l.K; k++ {
 			v = float64((l.Rnd.Int() % (r * l.K))) / float64(r*l.K)
-			l.nPhi[k*l.w+i] = v
+			l.nPhi[i*l.K+k] = v
 			l.nZ[k] += v
 		}
 	}
@@ -219,7 +217,6 @@ func (l *LatentDirichletAllocation) Fit(m mat.Matrix) Transformer {
 // documents
 func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matrix, wc float64, gamma *[]float64, nTheta []float64) {
 	var rhoTheta float64
-	_, c := m.Dims()
 	var sum, prevSum float64
 	var thetaInd int
 
@@ -228,7 +225,7 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 			// take a copy of current column j
 			prevSum = 0
 			for k := 0; k < l.K; k++ {
-				prevSum += nTheta[k*c+j]
+				prevSum += nTheta[j*l.K+k]
 			}
 		}
 		rhoTheta = l.RhoTheta.Calc(l.rhoThetaT + float64(counter))
@@ -236,7 +233,7 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 			var gammaSum float64
 			for k := 0; k < l.K; k++ {
 				// Eqn. 5.
-				(*gamma)[k] = ((l.nPhi[k*l.w+i] + l.Eta) * (nTheta[k*c+j] + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
+				(*gamma)[k] = ((l.nPhi[i*l.K+k] + l.Eta) * (nTheta[j*l.K+k] + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
 				gammaSum += (*gamma)[k]
 			}
 
@@ -246,7 +243,7 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 
 			for k := 0; k < l.K; k++ {
 				// Eqn. 9.
-				thetaInd = k*c + j
+				thetaInd = j*l.K + k
 				nTheta[thetaInd] = ((math.Pow((1.0-rhoTheta), v) * nTheta[thetaInd]) +
 					((1 - math.Pow((1.0-rhoTheta), v)) * wc * (*gamma)[k]))
 			}
@@ -254,7 +251,7 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 		if l.ChangeEvaluationFrequency > 0 && counter%l.ChangeEvaluationFrequency == 0 && counter < iterations {
 			sum = 0
 			for k := 0; k < l.K; k++ {
-				sum += nTheta[k*c+j]
+				sum += nTheta[j*l.K+k]
 			}
 			if math.Abs(sum-prevSum)/float64(l.K) < l.MeanChangeTolerance {
 				break
@@ -269,7 +266,6 @@ func (l *LatentDirichletAllocation) burnInDoc(j int, iterations int, m mat.Matri
 func (l *LatentDirichletAllocation) fitMiniBatch(miniBatch *ldaMiniBatch, wc []float64, nTheta []float64, m mat.Matrix) {
 	var rhoTheta float64
 	batchSize := miniBatch.end - miniBatch.start
-	_, c := m.Dims()
 	var phiInd, thetaInd int
 
 	for j := miniBatch.start; j < miniBatch.end; j++ {
@@ -280,7 +276,7 @@ func (l *LatentDirichletAllocation) fitMiniBatch(miniBatch *ldaMiniBatch, wc []f
 			var gammaSum float64
 			for k := 0; k < l.K; k++ {
 				// Eqn. 5.
-				miniBatch.gamma[k] = ((l.nPhi[k*l.w+i] + l.Eta) * (nTheta[k*c+j] + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
+				miniBatch.gamma[k] = ((l.nPhi[i*l.K+k] + l.Eta) * (nTheta[j*l.K+k] + l.Alpha) / (l.nZ[k] + l.Eta*float64(l.w)))
 				gammaSum += miniBatch.gamma[k]
 			}
 			for k := 0; k < l.K; k++ {
@@ -289,33 +285,36 @@ func (l *LatentDirichletAllocation) fitMiniBatch(miniBatch *ldaMiniBatch, wc []f
 
 			for k := 0; k < l.K; k++ {
 				// Eqn. 9.
-				thetaInd = k*c + j
+				thetaInd = j*l.K + k
 				nTheta[thetaInd] = ((math.Pow((1.0-rhoTheta), v) * nTheta[thetaInd]) +
 					((1 - math.Pow((1.0-rhoTheta), v)) * wc[j] * miniBatch.gamma[k]))
 
 				// calculate sufficient stats
 				nv := l.wordsInCorpus * miniBatch.gamma[k] / float64(batchSize)
-				miniBatch.nPhiHat[k*l.w+i] += nv
+				miniBatch.nPhiHat[i*l.K+k] += nv
 				miniBatch.nZHat[k] += nv
 			}
 		})
 	}
 	rhoPhi := l.RhoPhi.Calc(l.rhoPhiT)
 	l.rhoPhiT++
-	for k := 0; k < l.K; k++ {
-		l.phiMutex.Lock()
-		// Eqn. 7.
-		for w := 0; w < l.w; w++ {
-			phiInd = k*l.w + w
+
+	// Eqn. 7.
+	l.phiMutex.Lock()
+	for w := 0; w < l.w; w++ {
+		for k := 0; k < l.K; k++ {
+			phiInd = w*l.K + k
 			l.nPhi[phiInd] = ((1.0 - rhoPhi) * l.nPhi[phiInd]) + (rhoPhi * miniBatch.nPhiHat[phiInd])
 		}
-		l.phiMutex.Unlock()
-
-		l.zMutex.Lock()
-		// Eqn. 8.
-		l.nZ[k] = ((1.0 - rhoPhi) * l.nZ[k]) + (rhoPhi * miniBatch.nZHat[k])
-		l.zMutex.Unlock()
 	}
+	l.phiMutex.Unlock()
+
+	// Eqn. 8.
+	l.zMutex.Lock()
+	for k := 0; k < l.K; k++ {
+		l.nZ[k] = ((1.0 - rhoPhi) * l.nZ[k]) + (rhoPhi * miniBatch.nZHat[k])
+	}
+	l.zMutex.Unlock()
 }
 
 // normaliseTheta normalises theta to derive the posterior probability estimates for
@@ -331,10 +330,10 @@ func (l *LatentDirichletAllocation) normaliseTheta(theta []float64, result []flo
 	for j := 0; j < c; j++ {
 		var sum float64
 		for k := 0; k < l.K; k++ {
-			sum += theta[k*c+j] + adjustment
+			sum += theta[j*l.K+k] + adjustment
 		}
 		for k := 0; k < l.K; k++ {
-			result[k*c+j] = (theta[k*c+j] + adjustment) / sum
+			result[j*l.K+k] = (theta[j*l.K+k] + adjustment) / sum
 		}
 	}
 	return result
@@ -349,13 +348,15 @@ func (l *LatentDirichletAllocation) normalisePhi(phi []float64, result []float64
 	if result == nil {
 		result = make([]float64, l.K*l.w)
 	}
-	for k := 0; k < l.K; k++ {
-		var sum float64
-		for i := 0; i < l.w; i++ {
-			sum += phi[k*l.w+i] + adjustment
+	sum := make([]float64, l.K)
+	for i := 0; i < l.w; i++ {
+		for k := 0; k < l.K; k++ {
+			sum[k] += phi[i*l.K+k] + adjustment
 		}
-		for i := 0; i < l.w; i++ {
-			result[k*l.w+i] = (phi[k*l.w+i] + adjustment) / sum
+	}
+	for i := 0; i < l.w; i++ {
+		for k := 0; k < l.K; k++ {
+			result[i*l.K+k] = (phi[i*l.K+k] + adjustment) / sum[k]
 		}
 	}
 	return result
@@ -384,7 +385,6 @@ func (l *LatentDirichletAllocation) Perplexity(m mat.Matrix) float64 {
 	}
 
 	theta := l.unNormalisedTransform(m)
-
 	return l.perplexity(m, wordCount, l.normaliseTheta(theta, theta), l.normalisePhi(l.nPhi, nil))
 }
 
@@ -398,7 +398,7 @@ func (l *LatentDirichletAllocation) perplexity(m mat.Matrix, sum float64, nTheta
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			var dot float64
 			for k := 0; k < l.K; k++ {
-				dot += nPhi[k*l.w+i] * nTheta[k*c+j]
+				dot += nPhi[i*l.K+k] * nTheta[j*l.K+k]
 			}
 			ttlLogWordProb += math.Log2(dot) * v
 		})
@@ -412,18 +412,17 @@ func (l *LatentDirichletAllocation) perplexity(m mat.Matrix, sum float64, nTheta
 // and each column represents a unique words in the vocabulary and K is the number of
 // topics.
 func (l *LatentDirichletAllocation) Components() mat.Matrix {
-	return mat.NewDense(l.K, l.w, l.normalisePhi(l.nPhi, nil))
+	return mat.DenseCopyOf(mat.NewDense(l.w, l.K, l.normalisePhi(l.nPhi, nil)).T())
 }
 
 // unNormalisedTransform performs an unNormalisedTransform - the output
 // needs to be normalised using normaliseTheta before use.
 func (l *LatentDirichletAllocation) unNormalisedTransform(m mat.Matrix) []float64 {
 	_, c := m.Dims()
-	datalen := l.K * c
-	data := make([]float64, datalen)
-	for i := 0; i < datalen; i++ {
+	theta := make([]float64, l.K*c)
+	for i := range theta {
 		//data[i] = rnd.Float64() + 0.5
-		data[i] = float64((l.Rnd.Int() % (c * l.K))) / float64(c*l.K)
+		theta[i] = float64((l.Rnd.Int() % (c * l.K))) / float64(c*l.K)
 	}
 	gamma := make([]float64, l.K)
 
@@ -432,9 +431,9 @@ func (l *LatentDirichletAllocation) unNormalisedTransform(m mat.Matrix) []float6
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			wc += v
 		})
-		l.burnInDoc(j, l.TransformationPasses, m, wc, &gamma, data)
+		l.burnInDoc(j, l.TransformationPasses, m, wc, &gamma, theta)
 	}
-	return data
+	return theta
 }
 
 // Transform transforms the input matrix into a matrix representing the distribution
@@ -450,7 +449,7 @@ func (l *LatentDirichletAllocation) Transform(m mat.Matrix) (mat.Matrix, error) 
 	}
 	_, c := m.Dims()
 	theta := l.unNormalisedTransform(m)
-	return mat.NewDense(l.K, c, l.normaliseTheta(theta, theta)), nil
+	return mat.DenseCopyOf(mat.NewDense(c, l.K, l.normaliseTheta(theta, theta)).T()), nil
 }
 
 // FitTransform is approximately equivalent to calling Fit() followed by Transform()
@@ -471,11 +470,17 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 	_, c := m.Dims()
 
 	nTheta := make([]float64, l.K*c)
-	for j := 0; j < c; j++ {
-		for k := 0; k < l.K; k++ {
-			nTheta[k*c+j] = float64((l.Rnd.Int() % (c * l.K))) / float64(c*l.K)
-		}
+	for i := 0; i < l.K*c; i++ {
+		nTheta[i] = float64((l.Rnd.Int() % (c * l.K))) / float64(c*l.K)
 	}
+	wc := make([]float64, c)
+	for j := 0; j < c; j++ {
+		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
+			wc[j] += v
+		})
+		l.wordsInCorpus += wc[j]
+	}
+
 	var phiProb []float64
 	var thetaProb []float64
 
@@ -487,14 +492,6 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 	miniBatches := make([]*ldaMiniBatch, processes)
 	for i := range miniBatches {
 		miniBatches[i] = newLdaMiniBatch(l.K, l.w)
-	}
-
-	wc := make([]float64, c)
-	for j := 0; j < c; j++ {
-		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
-			wc[j] += v
-		})
-		l.wordsInCorpus += wc[j]
 	}
 
 	l.rhoPhiT = 1
@@ -541,6 +538,5 @@ func (l *LatentDirichletAllocation) FitTransform(m mat.Matrix) (mat.Matrix, erro
 			prevPerplexity = perplexity
 		}
 	}
-
-	return mat.NewDense(l.K, c, l.normaliseTheta(nTheta, thetaProb)), nil
+	return mat.DenseCopyOf(mat.NewDense(c, l.K, l.normaliseTheta(nTheta, thetaProb)).T()), nil
 }
