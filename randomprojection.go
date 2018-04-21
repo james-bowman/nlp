@@ -308,7 +308,7 @@ func (r *RandomIndexing) Transform(m mat.Matrix) (mat.Matrix, error) {
 	}
 
 	for j := 0; j < cols; j++ {
-		featVec := sparse.NewVecCOO(k, []int{}, []float64{})
+		featVec := sparse.NewVector(k, []int{}, []float64{})
 		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
 			idxVec := r.elementalVecs.(mat.ColViewer).ColView(i)
 			featVec.AddScaledVec(featVec, v, idxVec)
