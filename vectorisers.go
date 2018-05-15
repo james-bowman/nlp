@@ -31,10 +31,6 @@ type OnlineTransformer interface {
 	PartialFit(mat.Matrix) OnlineTransformer
 }
 
-var (
-	stopWords = []string{"a", "about", "above", "above", "across", "after", "afterwards", "again", "against", "all", "almost", "alone", "along", "already", "also", "although", "always", "am", "among", "amongst", "amoungst", "amount", "an", "and", "another", "any", "anyhow", "anyone", "anything", "anyway", "anywhere", "are", "around", "as", "at", "back", "be", "became", "because", "become", "becomes", "becoming", "been", "before", "beforehand", "behind", "being", "below", "beside", "besides", "between", "beyond", "bill", "both", "bottom", "but", "by", "call", "can", "cannot", "cant", "co", "con", "could", "couldnt", "cry", "de", "describe", "detail", "do", "done", "down", "due", "during", "each", "eg", "eight", "either", "eleven", "else", "elsewhere", "empty", "enough", "etc", "even", "ever", "every", "everyone", "everything", "everywhere", "except", "few", "fifteen", "fify", "fill", "find", "fire", "first", "five", "for", "former", "formerly", "forty", "found", "four", "from", "front", "full", "further", "get", "give", "go", "had", "has", "hasnt", "have", "he", "hence", "her", "here", "hereafter", "hereby", "herein", "hereupon", "hers", "herself", "him", "himself", "his", "how", "however", "hundred", "ie", "if", "in", "inc", "indeed", "interest", "into", "is", "it", "its", "itself", "keep", "last", "latter", "latterly", "least", "less", "ltd", "made", "many", "may", "me", "meanwhile", "might", "mill", "mine", "more", "moreover", "most", "mostly", "move", "much", "must", "my", "myself", "name", "namely", "neither", "never", "nevertheless", "next", "nine", "no", "nobody", "none", "noone", "nor", "not", "nothing", "now", "nowhere", "of", "off", "often", "on", "once", "one", "only", "onto", "or", "other", "others", "otherwise", "our", "ours", "ourselves", "out", "over", "own", "part", "per", "perhaps", "please", "put", "rather", "re", "same", "see", "seem", "seemed", "seeming", "seems", "serious", "several", "she", "should", "show", "side", "since", "sincere", "six", "sixty", "so", "some", "somehow", "someone", "something", "sometime", "sometimes", "somewhere", "still", "such", "system", "take", "ten", "than", "that", "the", "their", "them", "themselves", "then", "thence", "there", "thereafter", "thereby", "therefore", "therein", "thereupon", "these", "they", "thickv", "thin", "third", "this", "those", "though", "three", "through", "throughout", "thru", "thus", "to", "together", "too", "top", "toward", "towards", "twelve", "twenty", "two", "un", "under", "until", "up", "upon", "us", "very", "via", "was", "we", "well", "were", "what", "whatever", "when", "whence", "whenever", "where", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", "whether", "which", "while", "whither", "who", "whoever", "whole", "whom", "whose", "why", "will", "with", "within", "without", "would", "yet", "you", "your", "yours", "yourself", "yourselves"}
-)
-
 // Tokeniser interface for tokenisers allowing substitution of different
 // tokenisation strategies e.g. Regexp and also supporting different
 // different token types n-grams and languages.
@@ -56,16 +52,15 @@ type RegExpTokeniser struct {
 	StopWords map[string]bool
 }
 
-// NewTokeniser returns a new, default Tokeniser implementation.  If
-// removeStopwords is true then stop words will be removed from tokens
-func NewTokeniser(removeStopwords bool) Tokeniser {
+// NewTokeniser returns a new, default Tokeniser implementation.
+// stopWords is a potentially empty string slice
+// that contains the words that should be removed from the corpus
+func NewTokeniser(stopWords []string) Tokeniser {
 	var stop map[string]bool
 
-	if removeStopwords {
-		stop = make(map[string]bool)
-		for _, word := range stopWords {
-			stop[word] = true
-		}
+	stop = make(map[string]bool)
+	for _, word := range stopWords {
+		stop[word] = true
 	}
 	return &RegExpTokeniser{
 		RegExp:    regexp.MustCompile("[\\p{L}]+"),
@@ -139,12 +134,12 @@ type CountVectoriser struct {
 	Tokeniser Tokeniser
 }
 
-// NewCountVectoriser creates a new CountVectoriser.  If removeStopwords is true then
-// english stop words will be removed.
-func NewCountVectoriser(removeStopwords bool) *CountVectoriser {
+// NewCountVectoriser creates a new CountVectoriser.
+// stopWords is a potentially empty slice of words to be removed from the corpus
+func NewCountVectoriser(stopWords []string) *CountVectoriser {
 	return &CountVectoriser{
 		Vocabulary: make(map[string]int),
-		Tokeniser:  NewTokeniser(removeStopwords),
+		Tokeniser:  NewTokeniser(stopWords),
 	}
 }
 
@@ -203,15 +198,15 @@ type HashingVectoriser struct {
 	Tokeniser   Tokeniser
 }
 
-// NewHashingVectoriser creates a new HashingVectoriser.  If removeStopwords is true then
+// NewHashingVectoriser creates a new HashingVectoriser.  If stopWords is not an empty slice then
 // english stop words will be removed.  numFeatures specifies the number of features
 // that should be present in produced vectors.  Each word in a document is hashed and
 // the mod of the hash and numFeatures gives the row in the matrix corresponding to that
 // word.
-func NewHashingVectoriser(removeStopwords bool, numFeatures int) *HashingVectoriser {
+func NewHashingVectoriser(stopWords []string, numFeatures int) *HashingVectoriser {
 	return &HashingVectoriser{
 		NumFeatures: numFeatures,
-		Tokeniser:   NewTokeniser(removeStopwords),
+		Tokeniser:   NewTokeniser(stopWords),
 	}
 }
 
