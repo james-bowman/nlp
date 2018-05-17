@@ -136,15 +136,11 @@ func (r *RandomProjection) Transform(m mat.Matrix) (mat.Matrix, error) {
 	// projections will be dimensions k x r (k x t)
 	// m will be dimensions r x c (t x d)
 	// product will be of reduced dimensions k x c (k x d)
-
-	var matrix mat.Matrix
-	if t, canConv := m.(sparse.TypeConverter); canConv {
-		matrix = t.ToCSC()
-	} else {
-		matrix = m
+	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
+		m = t.ToCSR()
 	}
 
-	product.Mul(r.projections, matrix)
+	product.Mul(r.projections, m)
 
 	return &product, nil
 }
@@ -295,6 +291,36 @@ func (r *RandomIndexing) trainingCycle(m mat.Matrix) {
 // lower dimensional semantic space.  The output matrix will be of
 // shape k x c and will be a sparse CSC format matrix.
 func (r *RandomIndexing) Transform(m mat.Matrix) (mat.Matrix, error) {
+	_, cols := m.Dims()
+	k, _ := r.elementalVecs.Dims()
+
+	var ind []int
+	var data []float64
+	indptr := make([]int, cols+1)
+	spa := sparse.NewSPA(k)
+
+	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
+		m = t.ToCSC()
+	}
+
+	for j := 0; j < cols; j++ {
+		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
+			idxVec := r.elementalVecs.(mat.ColViewer).ColView(i).(*sparse.Vector)
+			spa.ScatterVec(idxVec, v, &ind)
+		})
+		spa.GatherAndZero(&data, &ind)
+		indptr[j+1] = len(ind)
+	}
+
+	product := sparse.NewCSC(r.K, cols, indptr, ind, data)
+
+	return product, nil
+}
+
+// Transform2 applies the transform, projecting matrix into the
+// lower dimensional semantic space.  The output matrix will be of
+// shape k x c and will be a sparse CSC format matrix.
+func (r *RandomIndexing) Transform2(m mat.Matrix) (mat.Matrix, error) {
 	_, cols := m.Dims()
 	k, _ := r.elementalVecs.Dims()
 
