@@ -317,41 +317,6 @@ func (r *RandomIndexing) Transform(m mat.Matrix) (mat.Matrix, error) {
 	return product, nil
 }
 
-// Transform2 applies the transform, projecting matrix into the
-// lower dimensional semantic space.  The output matrix will be of
-// shape k x c and will be a sparse CSC format matrix.
-func (r *RandomIndexing) Transform2(m mat.Matrix) (mat.Matrix, error) {
-	_, cols := m.Dims()
-	k, _ := r.elementalVecs.Dims()
-
-	var ptr int
-	var ind []int
-	var data []float64
-	indptr := make([]int, cols+1)
-
-	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
-		m = t.ToCSC()
-	}
-
-	for j := 0; j < cols; j++ {
-		featVec := sparse.NewVector(k, []int{}, []float64{})
-		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
-			idxVec := r.elementalVecs.(mat.ColViewer).ColView(i)
-			featVec.AddScaledVec(featVec, v, idxVec)
-		})
-		featVec.DoNonZero(func(i, j int, v float64) {
-			data = append(data, v)
-			ind = append(ind, i)
-			ptr++
-		})
-		indptr[j+1] = ptr
-	}
-
-	product := sparse.NewCSC(r.K, cols, indptr, ind, data)
-
-	return product, nil
-}
-
 // FitTransform is approximately equivalent to calling Fit() followed by Transform()
 // on the same matrix.  This is a useful shortcut where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
