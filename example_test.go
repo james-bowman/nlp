@@ -21,7 +21,7 @@ func Example() {
 
 	query := "the brown fox ran around the dog"
 
-	vectoriser := nlp.NewCountVectoriser(stopWords)
+	vectoriser := nlp.NewCountVectoriser(stopWords...)
 	transformer := nlp.NewTfidfTransformer()
 
 	// set k (the number of dimensions following truncation) to 4

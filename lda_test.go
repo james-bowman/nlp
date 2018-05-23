@@ -242,7 +242,7 @@ func ExampleLatentDirichletAllocation() {
 	}
 
 	// Create a pipeline with a count vectoriser and LDA transformer for 2 topics
-	vectoriser := nlp.NewCountVectoriser(stopWords)
+	vectoriser := nlp.NewCountVectoriser(stopWords...)
 	lda := nlp.NewLatentDirichletAllocation(2)
 	pipeline := nlp.NewPipeline(vectoriser, lda)
 
