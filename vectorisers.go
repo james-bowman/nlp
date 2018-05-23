@@ -55,7 +55,7 @@ type RegExpTokeniser struct {
 // NewTokeniser returns a new, default Tokeniser implementation.
 // stopWords is a potentially empty string slice
 // that contains the words that should be removed from the corpus
-func NewTokeniser(stopWords []string) Tokeniser {
+func NewTokeniser(stopWords ...string) Tokeniser {
 	var stop map[string]bool
 
 	stop = make(map[string]bool)
@@ -136,10 +136,10 @@ type CountVectoriser struct {
 
 // NewCountVectoriser creates a new CountVectoriser.
 // stopWords is a potentially empty slice of words to be removed from the corpus
-func NewCountVectoriser(stopWords []string) *CountVectoriser {
+func NewCountVectoriser(stopWords ...string) *CountVectoriser {
 	return &CountVectoriser{
 		Vocabulary: make(map[string]int),
-		Tokeniser:  NewTokeniser(stopWords),
+		Tokeniser:  NewTokeniser(stopWords...),
 	}
 }
 
@@ -203,10 +203,10 @@ type HashingVectoriser struct {
 // that should be present in produced vectors.  Each word in a document is hashed and
 // the mod of the hash and numFeatures gives the row in the matrix corresponding to that
 // word.
-func NewHashingVectoriser(stopWords []string, numFeatures int) *HashingVectoriser {
+func NewHashingVectoriser(numFeatures int, stopWords ...string) *HashingVectoriser {
 	return &HashingVectoriser{
 		NumFeatures: numFeatures,
-		Tokeniser:   NewTokeniser(stopWords),
+		Tokeniser:   NewTokeniser(stopWords...),
 	}
 }
 

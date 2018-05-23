@@ -39,7 +39,7 @@ func TestCountVectoriserFit(t *testing.T) {
 
 	for testRun, test := range tests {
 		t.Logf("**** Test Run %d.\n", testRun+1)
-		vectoriser := NewCountVectoriser(test.stop)
+		vectoriser := NewCountVectoriser(test.stop...)
 
 		vectoriser.Fit(test.train...)
 
@@ -67,7 +67,7 @@ func TestCountVectoriserTransform(t *testing.T) {
 	for testRun, test := range tests {
 		t.Logf("**** Test Run %d.\n", testRun+1)
 
-		vectoriser := NewCountVectoriser(test.stop)
+		vectoriser := NewCountVectoriser(test.stop...)
 		vectoriser.Fit(test.train...)
 
 		vec, err := vectoriser.Transform(test.test...)
@@ -101,7 +101,7 @@ func TestHashingVectoriserTransform(t *testing.T) {
 
 	for testRun, test := range tests {
 		t.Logf("**** Test Run %d.\n", testRun+1)
-		vectoriser := NewHashingVectoriser(test.stop, test.features)
+		vectoriser := NewHashingVectoriser(test.features, test.stop...)
 		vectoriser.Fit(test.train...)
 
 		vec, err := vectoriser.Transform(test.test...)
