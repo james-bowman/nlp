@@ -103,6 +103,7 @@ func (s *SignRandomProjection) FitTransform(m mat.Matrix) (mat.Matrix, error) {
 type RandomProjection struct {
 	K           int
 	Density     float64
+	rnd         *rand.Rand
 	projections mat.Matrix
 }
 
@@ -123,7 +124,7 @@ func NewRandomProjection(k int, density float64) *RandomProjection {
 // input matrices into the new reduced dimensional subspace.
 func (r *RandomProjection) Fit(m mat.Matrix) Transformer {
 	rows, _ := m.Dims()
-	r.projections = CreateRandomProjectionTransform(r.K, rows, r.Density)
+	r.projections = CreateRandomProjectionTransform(r.K, rows, r.Density, r.rnd)
 	return r
 }
 
@@ -203,7 +204,10 @@ type RandomIndexing struct {
 	// If Type is ColBasedRI then there is an implicit reflective
 	// training cycle performed in addition to the number of reflections
 	// specified.
-	Reflections   int
+	Reflections int
+
+	rnd *rand.Rand
+
 	elementalVecs mat.Matrix
 }
 
@@ -261,12 +265,12 @@ func (r *RandomIndexing) Fit(m mat.Matrix) Transformer {
 	var cyclesPerformed int
 
 	if r.Type == ColBasedRI {
-		p = CreateRandomProjectionTransform(r.K, cols, r.Density)
+		p = CreateRandomProjectionTransform(r.K, cols, r.Density, r.rnd)
 		r.elementalVecs = p.(sparse.TypeConverter).ToCSC()
 
 		r.trainingCycle(m.T())
 	} else {
-		p = CreateRandomProjectionTransform(r.K, rows, r.Density)
+		p = CreateRandomProjectionTransform(r.K, rows, r.Density, r.rnd)
 		r.elementalVecs = p.(sparse.TypeConverter).ToCSC()
 	}
 
@@ -330,10 +334,12 @@ func (r *RandomIndexing) FitTransform(m mat.Matrix) (mat.Matrix, error) {
 // be randomly populated using probability distributions where density
 // is used as the probability that each element will be populated.
 // Populated values will be randomly selected from [-1, 1] scaled
-// according to the density and dimensions of the matrix.
-func CreateRandomProjectionTransform(newDims, origDims int, density float64) mat.Matrix {
-	rnd := rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
-
+// according to the density and dimensions of the matrix.  If rnd is
+// nil then a new random number generator will be created and used.
+func CreateRandomProjectionTransform(newDims, origDims int, density float64, rnd *rand.Rand) mat.Matrix {
+	if rnd == nil {
+		rnd = rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
+	}
 	// TODO Possibly return a mat.Dense instead of sparse.CSR if
 	// density == 1
 
@@ -358,9 +364,6 @@ func CreateRandomProjectionTransform(newDims, origDims int, density float64) mat
 }
 
 func binomial(n int, p float64, rnd *rand.Rand) int {
-	if rnd == nil {
-		rnd = rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
-	}
 	dist := distuv.Bernoulli{
 		P: p,
 		// Should this be Source (Gonum code and docs seem out of sync)
@@ -375,9 +378,6 @@ func binomial(n int, p float64, rnd *rand.Rand) int {
 }
 
 func values(idx []float64, dims int, density float64, rnd *rand.Rand) {
-	if rnd == nil {
-		rnd = rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
-	}
 	dist := distuv.Bernoulli{
 		P: 0.5,
 		// Should this be Source (Gonum code and docs seem out of sync)

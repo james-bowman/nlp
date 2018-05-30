@@ -92,6 +92,7 @@ func TestRandomProjection(t *testing.T) {
 
 		// When transformed using sign random projections
 		transformer := NewRandomProjection(test.k, float64(test.density))
+		transformer.rnd = rand.New(rand.NewSource(uint64(0)))
 		reducedDimMatrix, err := transformer.FitTransform(matrix)
 		if err != nil {
 			t.Errorf("Failed to transform matrix because %v\n", err)
@@ -153,6 +154,7 @@ func TestRandomIndexing(t *testing.T) {
 
 		// When transformed using sign random projections
 		transformer := NewRandomIndexing(test.k, float64(test.density))
+		transformer.rnd = rand.New(rand.NewSource(uint64(0)))
 		reducedDimMatrix, err := transformer.FitTransform(matrix)
 		if err != nil {
 			t.Errorf("Failed to transform matrix because %v\n", err)
@@ -214,6 +216,7 @@ func TestReflectiveRandomIndexing(t *testing.T) {
 
 		// When transformed using Reflective Random Indexing
 		transformer := NewReflectiveRandomIndexing(test.k, ColBasedRI, 0, float64(test.density))
+		transformer.rnd = rand.New(rand.NewSource(uint64(0)))
 		reducedDimMatrix, err := transformer.FitTransform(matrix)
 		if err != nil {
 			t.Errorf("Failed to transform matrix because %v\n", err)
