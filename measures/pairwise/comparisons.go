@@ -12,13 +12,18 @@ import (
 type Comparer func(a, b mat.Vector) float64
 
 // CosineSimilarity calculates the cosine of the angles of 2 vectors i.e. how
-// similar they are.  Possible values range up to 1 (exact match)
+// similar they are.  Possible values range up to 1 (exact match).  NaN will be
+// returned if either vector is zero length or contains only 0s.
 func CosineSimilarity(a, b mat.Vector) float64 {
 	// Cosine angle between two vectors is equal to their dot product divided by
 	// the product of their L2 norms
 	dotProduct := sparse.Dot(a, b)
 	norma := sparse.Norm(a, 2.0)
 	normb := sparse.Norm(b, 2.0)
+
+	if norma == 0 || normb == 0 {
+		return math.NaN()
+	}
 
 	return (dotProduct / (norma * normb))
 }
