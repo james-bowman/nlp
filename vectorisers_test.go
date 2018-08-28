@@ -50,34 +50,6 @@ func TestCountVectoriserFit(t *testing.T) {
 		}
 	}
 }
-
-func TestCountVectoriserPartialFit(t *testing.T) {
-	var tests = []struct {
-		train     []string
-		stop      []string
-		vocabSize int
-	}{
-		{trainSet, []string{}, 26},
-		{trainSet[0:1], []string{}, 8},
-		{trainSet, stopWords, 18},
-	}
-
-	for testRun, test := range tests {
-		t.Logf("**** Test Run %d.\n", testRun+1)
-		vectoriser := NewCountVectoriser(test.stop...)
-
-		for _, v := range test.train {
-			vectoriser.PartialFit(v)
-		}
-
-		if len(vectoriser.Vocabulary) != test.vocabSize {
-			t.Logf("Expected training dataset %v of size %d but found vocabulary %v of size %d",
-				test.train, test.vocabSize, vectoriser.Vocabulary, len(vectoriser.Vocabulary))
-			t.Fail()
-		}
-	}
-}
-
 func TestCountVectoriserTransform(t *testing.T) {
 	var tests = []struct {
 		train     []string

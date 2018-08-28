@@ -166,18 +166,6 @@ func (v *CountVectoriser) Fit(train ...string) Vectoriser {
 	return v
 }
 
-// PartialFit processes the supplied training data (a variable number of strings
-// representing documents).  Each word appearing inside the training data will be
-// added to the Vocabulary.  Unlike Fit(), PartialFit() is intended to be called
-// multiple times to incrementally train the model and so is intended for online
-// or mini-batch training as opposed to batch training as with the Fit() method.
-func (v *CountVectoriser) PartialFit(train ...string) OnlineVectoriser {
-	i := len(v.Vocabulary)
-	v.fitVocab(i, train...)
-
-	return v
-}
-
 // fitVocab learns the vocabulary contained within the supplied training documents
 func (v *CountVectoriser) fitVocab(start int, train ...string) {
 	i := start
