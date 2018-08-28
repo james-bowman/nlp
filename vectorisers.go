@@ -17,6 +17,13 @@ type Vectoriser interface {
 	FitTransform(...string) (mat.Matrix, error)
 }
 
+// OnlineVectoriser is an extension to the Vectoriser interface that supports
+// online (streaming/mini-batch) training as opposed to just batch.
+type OnlineVectoriser interface {
+	Vectoriser
+	PartialFit(...string) OnlineVectoriser
+}
+
 // Transformer provides a common interface for transformer steps.
 type Transformer interface {
 	Fit(mat.Matrix) Transformer
@@ -145,9 +152,35 @@ func NewCountVectoriser(stopWords ...string) *CountVectoriser {
 
 // Fit processes the supplied training data (a variable number of strings representing
 // documents).  Each word appearing inside the training data will be added to the
-// Vocabulary
+// Vocabulary.  The Fit() method is intended to be called once to train the model
+// in a batch context.  For online or mini-batch training please use the PartialFit
+// method.  Calling the Fit() method a sceond time have the effect of re-training the
+// model from scratch (discarding the previously learnt vocabulary).
 func (v *CountVectoriser) Fit(train ...string) Vectoriser {
 	i := 0
+	if len(v.Vocabulary) != 0 {
+		v.Vocabulary = make(map[string]int)
+	}
+	v.fitVocab(i, train...)
+
+	return v
+}
+
+// PartialFit processes the supplied training data (a variable number of strings
+// representing documents).  Each word appearing inside the training data will be
+// added to the Vocabulary.  Unlike Fit(), PartialFit() is intended to be called
+// multiple times to incrementally train the model and so is intended for online
+// or mini-batch training as opposed to batch training as with the Fit() method.
+func (v *CountVectoriser) PartialFit(train ...string) OnlineVectoriser {
+	i := len(v.Vocabulary)
+	v.fitVocab(i, train...)
+
+	return v
+}
+
+// fitVocab learns the vocabulary contained within the supplied training documents
+func (v *CountVectoriser) fitVocab(start int, train ...string) {
+	i := start
 	for _, doc := range train {
 		v.Tokeniser.ForEachIn(doc, func(word string) {
 			_, exists := v.Vocabulary[word]
@@ -157,8 +190,6 @@ func (v *CountVectoriser) Fit(train ...string) Vectoriser {
 			}
 		})
 	}
-
-	return v
 }
 
 // Transform transforms the supplied documents into a term document matrix where each
@@ -217,6 +248,16 @@ func NewHashingVectoriser(numFeatures int, stopWords ...string) *HashingVectoris
 func (v *HashingVectoriser) Fit(train ...string) Vectoriser {
 	// The hashing vectoriser is stateless and does not require pre-training so this
 	// method does nothing.
+	return v
+}
+
+// PartialFit does nothing for a HashingVectoriser.  As the HashingVectoriser vectorises
+// features based on their hash, it does not require a pre-learnt vocabulary to map
+// features to the correct row in the feature vector.  This method is included
+// for compatibility with other vectorisers.
+func (v *HashingVectoriser) PartialFit(train ...string) Vectoriser {
+	// The hashing vectoriser is stateless and does not requre training so this method
+	// does nothing.
 	return v
 }
 
