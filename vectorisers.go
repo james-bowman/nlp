@@ -153,9 +153,8 @@ func NewCountVectoriser(stopWords ...string) *CountVectoriser {
 // Fit processes the supplied training data (a variable number of strings representing
 // documents).  Each word appearing inside the training data will be added to the
 // Vocabulary.  The Fit() method is intended to be called once to train the model
-// in a batch context.  For online or mini-batch training please use the PartialFit
-// method.  Calling the Fit() method a sceond time have the effect of re-training the
-// model from scratch (discarding the previously learnt vocabulary).
+// in a batch context.  Calling the Fit() method a sceond time have the effect of
+// re-training the model from scratch (discarding the previously learnt vocabulary).
 func (v *CountVectoriser) Fit(train ...string) Vectoriser {
 	i := 0
 	if len(v.Vocabulary) != 0 {
