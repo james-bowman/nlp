@@ -36,21 +36,21 @@ func (t *TfidfTransformer) Fit(matrix mat.Matrix) Transformer {
 	m, n := matrix.Dims()
 
 	weights := make([]float64, m)
-	csr, ok := matrix.(*sparse.CSR)
-
-	for i := 0; i < m; i++ {
-		df := 0
-		if ok {
-			df = csr.RowNNZ(i)
-		} else {
+	var df int
+	if csr, ok := matrix.(*sparse.CSR); ok {
+		for i := 0; i < m; i++ {
+			weights[i] = math.Log(float64(1+n) / float64(1+csr.RowNNZ(i)))
+		}
+	} else {
+		for i := 0; i < m; i++ {
+			df = 0
 			for j := 0; j < n; j++ {
 				if matrix.At(i, j) != 0 {
 					df++
 				}
 			}
+			weights[i] = math.Log(float64(1+n) / float64(1+df))
 		}
-		idf := math.Log(float64(1+n) / float64(1+df))
-		weights[i] = idf
 	}
 
 	// build a diagonal matrix from array of term weighting values for subsequent
