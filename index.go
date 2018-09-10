@@ -160,12 +160,12 @@ type LSHScheme interface {
 
 // LSHIndex is an LSH (Locality Sensitive Hashing) based index supporting Approximate
 // Nearest Neighbour (ANN) search in O(log n).  The storage required by the index will
-// depend upon the underlying LSH index store algorithm used but will typically be
-// higher than O(n).  In use cases where accurate Nearest Neighbour search is required
-// other types of index should be considered like LinearScanIndex.
+// depend upon the underlying LSH scheme used but will typically be higher than O(n).
+// In use cases where accurate Nearest Neighbour search is required other types of
+// index should be considered like LinearScanIndex.
 type LSHIndex struct {
 	lock       sync.RWMutex
-	IsApprox   bool
+	isApprox   bool
 	hasher     Hasher
 	scheme     LSHScheme
 	signatures map[interface{}]mat.Vector
@@ -183,7 +183,7 @@ type LSHIndex struct {
 // algorithm may both be specified as hasher and store parameters respectively.
 func NewLSHIndex(approx bool, hasher Hasher, store LSHScheme, distance pairwise.Comparer) *LSHIndex {
 	index := LSHIndex{
-		IsApprox:   approx,
+		isApprox:   approx,
 		hasher:     hasher,
 		scheme:     store,
 		signatures: make(map[interface{}]mat.Vector),
@@ -201,7 +201,7 @@ func (l *LSHIndex) Index(v mat.Vector, id interface{}) {
 	defer l.lock.Unlock()
 
 	l.scheme.Put(id, h)
-	if l.IsApprox {
+	if l.isApprox {
 		l.signatures[id] = h
 	} else {
 		l.signatures[id] = v
@@ -220,7 +220,7 @@ func (l *LSHIndex) Search(q mat.Vector, k int) []Match {
 	candidateIDs := l.scheme.GetCandidates(hv, k)
 
 	var qv mat.Vector
-	if l.IsApprox {
+	if l.isApprox {
 		qv = hv
 	} else {
 		qv = q
