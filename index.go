@@ -2,7 +2,6 @@ package nlp
 
 import (
 	"container/heap"
-	"fmt"
 	"sync"
 
 	"github.com/james-bowman/nlp/measures/pairwise"
@@ -86,11 +85,13 @@ func (b *LinearScanIndex) Index(v mat.Vector, id interface{}) {
 func (b *LinearScanIndex) Search(qv mat.Vector, k int) []Match {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
+
 	size := len(b.signatures)
 
 	var point int
 	var results resultHeap
 	results.matches = make([]Match, 0, k)
+
 	for point = 0; point < k && point < size; point++ {
 		mv := b.signatures[point]
 		match := Match{Distance: b.distance(qv, mv), ID: b.ids[point]}
@@ -218,6 +219,7 @@ func (l *LSHIndex) Search(q mat.Vector, k int) []Match {
 	defer l.lock.RUnlock()
 
 	candidateIDs := l.scheme.GetCandidates(hv, k)
+	size := len(candidateIDs)
 
 	var qv mat.Vector
 	if l.isApprox {
@@ -226,9 +228,10 @@ func (l *LSHIndex) Search(q mat.Vector, k int) []Match {
 		qv = q
 	}
 
-	size := len(candidateIDs)
-	var results resultHeap
 	var point int
+	var results resultHeap
+	results.matches = make([]Match, 0, k)
+
 	for point = 0; point < k && point < size; point++ {
 		mv := l.signatures[candidateIDs[point]]
 		match := Match{Distance: l.distance(qv, mv), ID: candidateIDs[point]}
@@ -259,120 +262,4 @@ func (l *LSHIndex) Remove(id interface{}) {
 
 	delete(l.signatures, id)
 	l.scheme.Remove(id)
-}
-
-// lshTableBucket represents a hash table bucket used for ClassicLSH.  The bucket
-// is a slice of IDs relating to items whose hash maps to the bucket.
-type lshTableBucket []interface{}
-
-// lshTable is an hash table used for ClassicLSH.  It is simply a map of hashcodes
-// to lshTableBuckets
-type lshTable map[uint64]lshTableBucket
-
-// remove removes the specified item from the LSH table
-func (t lshTable) remove(id interface{}) {
-	for key, bucketContents := range t {
-		for j, indexedID := range bucketContents {
-			if id == indexedID {
-				bucketContents[j] = bucketContents[len(bucketContents)-1]
-				t[key] = bucketContents[:len(bucketContents)-1]
-				if len(t[key]) == 0 {
-					delete(t, key)
-				}
-				return
-			}
-		}
-	}
-}
-
-// ClassicLSH supports finding top-k Approximate Nearest Neighbours (ANN) using Locality
-// Sensitive Hashing (LSH).  Classic LSH scheme is based on using hash tables to store
-// items by their locality sensitive hash code.  Items that map to the same bucket
-// (their hash codes collide) are similar.  Multiple hash tables are used to
-// improve recall where some similar items would otherwise hash to separate,
-// neighbouring buckets in only a single table.
-type ClassicLSH struct {
-	numHashtables    int
-	numHashfunctions int
-	reqLen           int
-	hashTables       []lshTable
-}
-
-// NewClassicLSH creates a new ClassicLSH with the configured number of hash tables
-// and hash functions per table.  The length of hash signatures used in this type's
-// methods (Put() and GetCandidates()) should be exactly equal to functions * tables.
-// The Classic LSH algorithm uses multiple hash tables to improve recall for similar
-// items that hash to nearby buckets within a specific hash table.
-func NewClassicLSH(functions, tables int) *ClassicLSH {
-	hashtables := make([]lshTable, tables)
-	for i := range hashtables {
-		hashtables[i] = make(map[uint64]lshTableBucket)
-	}
-
-	return &ClassicLSH{
-		reqLen:           tables * functions,
-		numHashtables:    tables,
-		numHashfunctions: functions,
-		hashTables:       hashtables,
-	}
-}
-
-// Put stores the specified LSH signature and associated ID in the LSH index.
-// The method panics if the signature is not the same length as tables * functions.
-func (l *ClassicLSH) Put(id interface{}, signature *sparse.BinaryVec) {
-	keys := l.hashKeysForSignature(signature)
-	for i := range l.hashTables {
-		l.hashTables[i][keys[i]] = append(l.hashTables[i][keys[i]], id)
-	}
-}
-
-// GetCandidates returns the IDs of candidate nearest neighbours.  It is up to
-// the calling code to further filter these candidates based on distance to arrive
-// at the top-k approximate nearest neighbours.  The number of candidates returned
-// may be smaller or larger than k.  The method panics if the signature is not the
-// same length as tables * functions.
-func (l *ClassicLSH) GetCandidates(query *sparse.BinaryVec, k int) []interface{} {
-	keys := l.hashKeysForSignature(query)
-
-	seen := make(map[interface{}]struct{})
-	for i, table := range l.hashTables {
-		if bucketEntries, exist := table[keys[i]]; exist {
-			for _, id := range bucketEntries {
-				if _, exist := seen[id]; exist {
-					continue
-				}
-				seen[id] = struct{}{}
-			}
-		}
-	}
-
-	// Collect results
-	ids := make([]interface{}, len(seen))
-	var i int
-	for index := range seen {
-		ids[i] = index
-		i++
-	}
-	return ids
-}
-
-// Remove removes the specified item from the LSH index
-func (l *ClassicLSH) Remove(id interface{}) {
-	for _, table := range l.hashTables {
-		table.remove(id)
-	}
-}
-
-// hashKeysForSignature chunks the hash into a number of smaller hash codes (one per
-// table) each the length of the configured number of hash functions per table.
-// The method panics if the signature is not the same length as tables * functions.
-func (l *ClassicLSH) hashKeysForSignature(signature *sparse.BinaryVec) []uint64 {
-	if signature.Len() != l.reqLen {
-		panic(fmt.Sprintf("nlp: Specified signature is not the correct length.  Needed %d but received %d", signature.Len(), l.reqLen))
-	}
-	keys := make([]uint64, l.numHashtables)
-	for i := 0; i < l.numHashtables; i++ {
-		keys[i] = signature.SliceToUint64(i*l.numHashfunctions, ((i+1)*l.numHashfunctions)-1)
-	}
-	return keys
 }

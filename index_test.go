@@ -19,6 +19,7 @@ func TestIndexerIndex(t *testing.T) {
 		{index: NewLinearScanIndex(pairwise.CosineDistance)},
 		{index: NewLSHIndex(false, NewSimHash(1000, 100), NewClassicLSH(50, 20), pairwise.CosineDistance)},
 		{index: NewLSHIndex(true, NewSimHash(1000, 100), NewClassicLSH(50, 20), pairwise.HammingDistance)},
+		{index: NewLSHIndex(false, NewSimHash(1000, 100), NewLSHForest(50, 20), pairwise.CosineDistance)},
 	}
 
 	for ti, test := range tests {
@@ -66,8 +67,8 @@ func TestIndexerSearch(t *testing.T) {
 		index Indexer
 	}{
 		{k: numCols, index: NewLinearScanIndex(pairwise.CosineDistance)},
-		{k: numCols, index: NewLSHIndex(false, NewSimHash(800, 100), NewClassicLSH(8, 100), pairwise.CosineDistance)},
-		//{k: numCols, index: NewLSHIndex(true, NewSimHash(5000, 100), NewClassicLSH(10, 500), pairwise.HammingDistance)},
+		{k: numCols, index: NewLSHIndex(false, NewSimHash(700, 100), NewClassicLSH(7, 100), pairwise.CosineDistance)},
+		{k: numCols, index: NewLSHIndex(false, NewSimHash(1000, 100), NewLSHForest(50, 20), pairwise.CosineDistance)},
 	}
 
 	for ti, test := range tests {
@@ -76,7 +77,6 @@ func TestIndexerSearch(t *testing.T) {
 		})
 
 		ColDo(m, func(j int, v mat.Vector) {
-
 			matches := test.index.Search(v, test.k)
 
 			if len(matches) != test.k {
@@ -104,6 +104,7 @@ func TestIndexerRemove(t *testing.T) {
 		{index: NewLinearScanIndex(pairwise.CosineDistance)},
 		{index: NewLSHIndex(false, NewSimHash(1000, 100), NewClassicLSH(50, 20), pairwise.CosineDistance)},
 		{index: NewLSHIndex(true, NewSimHash(1000, 100), NewClassicLSH(50, 20), pairwise.HammingDistance)},
+		{index: NewLSHIndex(false, NewSimHash(1000, 100), NewLSHForest(50, 20), pairwise.CosineDistance)},
 	}
 
 	for ti, test := range tests {

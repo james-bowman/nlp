@@ -7,11 +7,16 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// SimHash implements the SimHash Locality Sensitive Hashing (LSH) algorithm
-// using sign random projections (Moses S. Charikar, https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf)
-// The distance between the original vectors is preserved through the hashing process such that
-// hashed vectors can be compared using Hamming Similarity for a faster, more space
-// efficient, approximation of Cosine Similarity for the original vectors.
+// SimHash implements the SimHash Locality Sensitive Hashing (LSH) algorithm for
+// angular distance using sign random projections based on the work of Moses S. Charikar.
+// The distance between the original vectors is preserved through the hashing process
+// such that hashed vectors can be compared using Hamming Similarity for a faster,
+// more space efficient, approximation of Cosine Similarity for the original vectors.
+//
+// Charikar, Moses S. "Similarity Estimation Techniques from Rounding Algorithms"
+// in Proceedings of the thiry-fourth annual ACM symposium on Theory of computing -
+// STOC ’02, 2002, p. 380.
+// https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf
 type SimHash struct {
 	hyperplanes []*mat.VecDense
 }

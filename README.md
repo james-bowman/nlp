@@ -21,7 +21,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 ## Features
 
 * [LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI))][LSA] implementation using truncated [SVD (Singular Value Decomposition)](https://en.wikipedia.org/wiki/Singular-value_decomposition) for dimensionality reduction.
-* Fast retrieval of semantically similar documents with [SimHash](https://en.wikipedia.org/wiki/SimHash) implementation of [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) to support fast, approximate cosine similarity using significantly less memory and processing time.
+* Fast comparison and retrieval of semantically similar documents using [SimHash](https://en.wikipedia.org/wiki/SimHash) algorithm and multi-index and Forest schemes for [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) to support fast, approximate cosine similarity/angular distance comparisons and approximate nearest neighbour search using significantly less memory and processing time.
 * [Random Indexing (RI)](https://en.wikipedia.org/wiki/Random_indexing) and Reflective Random Indexing (RRI) (which extends RI to support indirect inference) for scalable [Latent Semantic Analysis (LSA)][LSA] over large, web-scale corpora.
 * [Latent Dirichlet Allocation (LDA)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) using a parallelised implementation of the fast [SCVB0 (Stochastic Collapsed Variational Bayesian inference)][SCVB0] algorithm for unsupervised topic extraction. 
 * [PCA (Principal Component Analysis)](https://en.wikipedia.org/wiki/Principal_component_analysis)
@@ -35,7 +35,6 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 
 * Expanded persistence support
 * Stemming to treat words with common root as the same e.g. "go" and "going"
-* Other indexing structures for Nearest Neighbour search.
 * Clustering algorithms e.g. Heirachical, K-means, etc.
 * Classification algorithms e.g. SVM, KNN, random forest, etc.
 
@@ -45,7 +44,9 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 1. [Latent Semantic Analysis, a scholarpedia article on LSA written by Tom Landauer, one of the creators of LSA.](http://www.scholarpedia.org/article/Latent_semantic_analysis)
 1. [Thomo, Alex. Latent Semantic Analysis (Tutorial).](http://webhome.cs.uvic.ca/~thomo/svd.pdf)
 1. [Latent Semantic Indexing. Standford NLP Course](http://nlp.stanford.edu/IR-book/html/htmledition/latent-semantic-indexing-1.html)
-1. [Charikar, Moses S. Similarity Estimation Techniques from Rounding Algorithms](https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf)
+1. [Charikar, Moses S. "Similarity Estimation Techniques from Rounding Algorithms" in Proceedings of the thiry-fourth annual ACM symposium on Theory of computing - STOC ’02, 2002, p. 380.](https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf)
+1. [M. Bawa, T. Condie, and P. Ganesan, “LSH forest: self-tuning indexes for similarity search,” Proc. 14th Int. Conf. World Wide Web - WWW ’05, p. 651, 2005.](http://dl.acm.org/citation.cfm?id=1060745.1060840)
+1. [A. Gionis, P. Indyk, and R. Motwani, “Similarity Search in High Dimensions via Hashing,” VLDB ’99 Proc. 25th Int. Conf. Very Large Data Bases, vol. 99, no. 1, pp. 518–529, 1999.](http://www.cs.princeton.edu/courses/archive/spring13/cos598C/Gionis.pdf%5Cnhttp://portal.acm.org/citation.cfm?id=671516)
 1. [Kanerva, Pentti, Kristoferson, Jan and Holst, Anders (2000). Random Indexing of Text Samples for Latent Semantic Analysis](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.4.6523&rep=rep1&type=pdf)
 1. [Rangan, Venkat. Discovery of Related Terms in a corpus using Reflective Random Indexing](https://www.umiacs.umd.edu/~oard/desi4/papers/rangan.pdf)
 1. [Vasuki, Vidya and Cohen, Trevor. Reflective random indexing for semi-automatic indexing of the biomedical literature](https://ac.els-cdn.com/S1532046410000481/1-s2.0-S1532046410000481-main.pdf?_tid=f31f92e8-028a-11e8-8c31-00000aab0f6c&acdnat=1516965824_e24a804445fff1744281ca6f5898a3a4)
