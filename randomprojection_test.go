@@ -88,7 +88,7 @@ func TestRandomProjection(t *testing.T) {
 
 	for ti, test := range tests {
 		matrix := sparse.Random(sparse.CSRFormat, test.rows, test.cols, test.density).(sparse.TypeConverter).ToCSR()
-		query := matrix.ColView(0)
+		query := matrix.ToCSC().ColView(0)
 
 		// When transformed using sign random projections
 		transformer := NewRandomProjection(test.k, float64(test.density))
@@ -97,20 +97,20 @@ func TestRandomProjection(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to transform matrix because %v\n", err)
 		}
-		m := reducedDimMatrix.(mat.ColViewer)
+		m := reducedDimMatrix.(*sparse.CSR).ToCSC()
 
 		reducedDimQuery, err := transformer.Transform(query)
 		if err != nil {
 			t.Errorf("Failed to transform query because %v\n", err)
 		}
-		q := reducedDimQuery.(mat.ColViewer).ColView(0)
+		q := reducedDimQuery.(*sparse.CSR).ToCSC().ColView(0)
 
 		var culmDiff float64
-		for i := 0; i < test.cols; i++ {
-			angSim := pairwise.CosineSimilarity(query, matrix.ColView(i))
-			lshSim := pairwise.CosineSimilarity(q, m.ColView(i))
+		ColDo(matrix, func(j int, v mat.Vector) {
+			angSim := pairwise.CosineSimilarity(query, v)
+			lshSim := pairwise.CosineSimilarity(q, m.ColView(j))
 
-			if i == 0 {
+			if j == 0 {
 				if math.Abs(angSim-lshSim) >= 0.0000001 {
 					t.Errorf("Test %d: Expected matching similarity but found %.10f (Ang) and %.10f (LSH)\n", ti, angSim, lshSim)
 				}
@@ -119,7 +119,7 @@ func TestRandomProjection(t *testing.T) {
 			//diff := math.Abs(lshSim-angSim) / angSim
 			diff := math.Abs(lshSim - angSim)
 			culmDiff += diff
-		}
+		})
 		t.Logf("CulmDiff = %f\n", culmDiff)
 		avgDiff := culmDiff / float64(test.cols)
 
@@ -150,7 +150,7 @@ func TestRandomIndexing(t *testing.T) {
 
 	for ti, test := range tests {
 		matrix := sparse.Random(sparse.CSRFormat, test.rows, test.cols, test.density).(sparse.TypeConverter).ToCSR()
-		query := matrix.ColView(0)
+		query := matrix.ToCSC().ColView(0)
 
 		// When transformed using sign random projections
 		transformer := NewRandomIndexing(test.k, float64(test.density))
@@ -159,7 +159,7 @@ func TestRandomIndexing(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to transform matrix because %v\n", err)
 		}
-		m := reducedDimMatrix.(mat.ColViewer)
+		m := reducedDimMatrix.(*sparse.CSC)
 
 		reducedDimQuery, err := transformer.Transform(query)
 		if err != nil {
@@ -168,11 +168,11 @@ func TestRandomIndexing(t *testing.T) {
 		q := reducedDimQuery.(mat.ColViewer).ColView(0)
 
 		var culmDiff float64
-		for i := 0; i < test.cols; i++ {
-			angSim := pairwise.CosineSimilarity(query, matrix.ColView(i))
-			lshSim := pairwise.CosineSimilarity(q, m.ColView(i))
+		ColDo(matrix, func(j int, v mat.Vector) {
+			angSim := pairwise.CosineSimilarity(query, v)
+			lshSim := pairwise.CosineSimilarity(q, m.ColView(j))
 
-			if i == 0 {
+			if j == 0 {
 				if math.Abs(angSim-lshSim) >= 0.05 {
 					t.Errorf("Test %d: Expected matching similarity but found %.10f (Ang) and %.10f (LSH)\n", ti, angSim, lshSim)
 				}
@@ -181,7 +181,7 @@ func TestRandomIndexing(t *testing.T) {
 			//diff := math.Abs(lshSim-angSim) / angSim
 			diff := math.Abs(lshSim - angSim)
 			culmDiff += diff
-		}
+		})
 		t.Logf("CulmDiff = %f\n", culmDiff)
 		avgDiff := culmDiff / float64(test.cols)
 
@@ -212,7 +212,7 @@ func TestReflectiveRandomIndexing(t *testing.T) {
 
 	for ti, test := range tests {
 		matrix := sparse.Random(sparse.CSRFormat, test.rows, test.cols, test.density).(sparse.TypeConverter).ToCSR()
-		query := matrix.ColView(0)
+		query := matrix.ToCSC().ColView(0)
 
 		// When transformed using Reflective Random Indexing
 		transformer := NewReflectiveRandomIndexing(test.k, ColBasedRI, 0, float64(test.density))
@@ -230,11 +230,11 @@ func TestReflectiveRandomIndexing(t *testing.T) {
 		q := reducedDimQuery.(mat.ColViewer).ColView(0)
 
 		var culmDiff float64
-		for i := 0; i < test.cols; i++ {
-			origSim := pairwise.CosineSimilarity(query, matrix.ColView(i))
-			redSim := pairwise.CosineSimilarity(q, m.ColView(i))
+		ColDo(matrix, func(j int, v mat.Vector) {
+			origSim := pairwise.CosineSimilarity(query, v)
+			redSim := pairwise.CosineSimilarity(q, m.ColView(j))
 
-			if i == 0 {
+			if j == 0 {
 				if math.Abs(origSim-redSim) >= 0.0000001 {
 					t.Errorf("Test %d: Expected matching similarity but found %.10f (Original) and %.10f (Reduced)\n", ti, origSim, redSim)
 				}
@@ -242,7 +242,7 @@ func TestReflectiveRandomIndexing(t *testing.T) {
 
 			diff := math.Abs(redSim - origSim)
 			culmDiff += diff
-		}
+		})
 		t.Logf("CulmDiff = %f\n", culmDiff)
 		avgDiff := culmDiff / float64(test.cols)
 
@@ -254,8 +254,8 @@ func TestReflectiveRandomIndexing(t *testing.T) {
 		if r != test.k || c != test.cols {
 			t.Errorf("Test %d: Expected output matrix to be %dx%d but was %dx%d\n", ti, test.k, test.cols, r, c)
 		}
-		if avgDiff >= 0.11 {
-			t.Errorf("Test %d: Expected difference between vector spaces %f but was %f\n", ti, 0.03, avgDiff)
+		if avgDiff >= 0.12 {
+			t.Errorf("Test %d: Expected difference between vector spaces %f but was %f\n", ti, 0.12, avgDiff)
 		}
 	}
 }

@@ -1,8 +1,15 @@
 package nlp
 
-import "gonum.org/v1/gonum/mat"
+import (
+	"github.com/james-bowman/sparse"
+	"gonum.org/v1/gonum/mat"
+)
 
-// ColDo executes fn for each column j in m
+// ColDo executes fn for each column j in m.  If the matrix implements the mat.ColViewer
+// interface then this interface will be used to iterate over the column vectors more
+// efficiently.  If the matrix implements the sparse.TypeConverter interface then the
+// matrix will be converted to a CSC matrix (which implements the mat.ColViewer
+// interface) so that it can benefit from the same optimisation.
 func ColDo(m mat.Matrix, fn func(j int, vec mat.Vector)) {
 	if v, isOk := m.(mat.Vector); isOk {
 		fn(0, v)
@@ -17,10 +24,11 @@ func ColDo(m mat.Matrix, fn func(j int, vec mat.Vector)) {
 		return
 	}
 
-	if cv, isOk := m.(mat.RawColViewer); isOk {
-		r, c := m.Dims()
+	if sv, isOk := m.(sparse.TypeConverter); isOk {
+		csc := sv.ToCSC()
+		_, c := csc.Dims()
 		for j := 0; j < c; j++ {
-			fn(j, mat.NewVecDense(r, cv.RawColView(j)))
+			fn(j, csc.ColView(j))
 		}
 		return
 	}
