@@ -2,7 +2,6 @@ package nlp
 
 import (
 	"math"
-	"sort"
 	"time"
 
 	"golang.org/x/exp/rand"
@@ -154,35 +153,32 @@ func (r *RandomProjection) FitTransform(m mat.Matrix) (mat.Matrix, error) {
 	return r.Fit(m).Transform(m)
 }
 
-// RIBasis represents the initial basis for the elemental vectors
-// used for Random Indexing
-type RIBasis int
+// RRIBasis represents the initial basis for the index/elemental vectors
+// used for Random Reflective Indexing
+type RRIBasis int
 
 const (
-	// RowBasedRI indicates rows (terms in a term-document matrix)
-	// forming the initial basis for elemental vectors in Random Indexing.
-	// This is the basis used for Random Indexing of documents, Reflective
-	// Random Indexing can use either rows or columns as the initial
-	// basis for elemental vectors.
-	RowBasedRI RIBasis = iota
+	// DocBasedRRI represents columns (documents/contexts in a term-document
+	// matrix) forming the initial basis for index/elemental vectors in Random Indexing
+	DocBasedRRI RRIBasis = iota
 
-	// ColBasedRI represents columns (documents/contexts in a term-document
-	// matrix) forming the initial basis for elemental vectors in Random Indexing
-	ColBasedRI
+	// TermBasedRRI indicates rows (terms in a term-document matrix)
+	// form the initial basis for index/elemental vectors in Reflective Random Indexing.
+	TermBasedRRI
 )
 
-// RandomIndexing is a method of dimensionality reduction similar to
-// TruncatedSVD and PCA.  Random
+// RandomIndexing is a method of dimensionality reduction used for Latent Semantic
+// Analysis in a similar way to TruncatedSVD and PCA.  Random
 // Indexing is designed to solve limitations of very high dimensional
 // vector space model implementations for modelling term co-occurance
-// in language processing such as SVD as used by LSA/LSI (Latent
+// in language processing such as SVD typically used for LSA/LSI (Latent
 // Semantic Analysis/Latent Semantic Indexing).  In implementation
 // it bears some similarity to other random projection techniques
 // such as those implemented in RandomProjection and SignRandomProjection
 // within this package.
 // The RandomIndexing type can also be used to perform Reflective
 // Random Indexing which extends the Random Indexing model with additional
-// training cycles to support indirect inferrence i.e. find synonyms
+// training cycles to better support indirect inferrence i.e. find synonyms
 // where the words do not appear together in documents.
 type RandomIndexing struct {
 	// K specifies the number of dimensions for the semantic space
@@ -194,37 +190,34 @@ type RandomIndexing struct {
 
 	// Type specifies the initial basis for the elemental vectors
 	// i.e. whether they initially represent the rows or columns
-	// For Random Indexing this should be RowBasedRI, for RRI
-	// (Reflective Random Indexing) it can be either RowBasedRI or
-	// ColBasedRI
-	Type RIBasis
+	// This is only relevent for Reflective Random Indexing
+	Type RRIBasis
 
 	// Reflections specifies the number of reflective training cycles
-	// to run during fitting for RRI (Reflective Random Indexing).
-	// If Type is ColBasedRI then there is an implicit reflective
-	// training cycle performed in addition to the number of reflections
-	// specified.
+	// to run during fitting for RRI (Reflective Random Indexing). For
+	// Randome Indexing (non-reflective) this is 0.
 	Reflections int
 
 	rnd *rand.Rand
 
-	elementalVecs mat.Matrix
+	// components is a k x t matrix where `t` is the number of terms
+	// (rows) in the training data matrix.  The columns in this matrix
+	// contain the `context` vectors for RI where each column represents
+	// a semantic representation of a term based upon the contexts
+	// in which it has appeared within the training data.
+	components mat.Matrix
 }
 
 // NewRandomIndexing returns a new RandomIndexing transformer
 // configured to transform term document matrices into k dimensional
-// space. The density parameter specifies the density of the elemental
+// space. The density parameter specifies the density of the index/elemental
 // vectors used to project the input matrix into lower dimensional
 // space i.e. the proportion of elements that are non-zero.
-// As RandomIndexing makes use of sparse matrix formats, specifying
-// lower values for density will result in lower memory usage.
 func NewRandomIndexing(k int, density float64) *RandomIndexing {
-	r := RandomIndexing{
+	return &RandomIndexing{
 		K:       k,
 		Density: density,
 	}
-
-	return &r
 }
 
 // NewReflectiveRandomIndexing returns a new RandomIndexing type
@@ -233,100 +226,112 @@ func NewRandomIndexing(k int, density float64) *RandomIndexing {
 // of Random Indexing to capture indirect inferences (synonyms).
 // i.e. similarity between terms that do not directly co-occur
 // within the same context/document.
-// t specifies the basis for the reflective random indexing i.e.
-// whether the initial, random elemental vectors should represent
-// columns or rows.
+// basis specifies the basis for the reflective random indexing i.e.
+// whether the initial, random index/elemental vectors should represent
+// documents (columns) or terms (rows).
 // reflections is the number of additional training cycles to apply
 // to build the elemental vectors.
-// If t == RowBasedRI and reflections == 0 then the created type
-// will perform conventional Random Indexing.
-// if t == ColBasedRI there will be an implicit training cycle
-// in order to construct the elemental vectors which will is
-// performed in addition to the number of reflections specified.
-func NewReflectiveRandomIndexing(k int, t RIBasis, reflections int, density float64) *RandomIndexing {
-	r := RandomIndexing{
+// Specifying basis == DocBasedRRI and reflections == 0 is equivalent
+// to conventional Random Indexing.
+func NewReflectiveRandomIndexing(k int, basis RRIBasis, reflections int, density float64) *RandomIndexing {
+	return &RandomIndexing{
 		K:           k,
-		Density:     density,
-		Type:        t,
+		Type:        basis,
 		Reflections: reflections,
+		Density:     density,
 	}
-
-	return &r
 }
 
-// Fit trains the model, creating random elemental vectors that will
-// later be used to construct the new projected feature vectors in
-// the reduced semantic dimensional space. If configured for
-// Reflective Random Indexing then Fit may actually run multiple
-// training cycles as specified during construction.
-func (r *RandomIndexing) Fit(m mat.Matrix) Transformer {
+// PartialFit extends the model to take account of the specified matrix m. The
+// context vectors are learnt and stored to be used for furture transformations
+// and analysis.  PartialFit performs Random Indexing even if the Transformer is
+// configured for Reflective Random Indexing so if RRI is required please train
+// using the Fit() method as a batch operation.  Unlike the Fit() method, the
+// PartialFit() method is designed to be called multiple times to support online
+// and mini-batch learning whereas the Fit() method is only intended to be called
+// once for batch learning.
+func (r *RandomIndexing) PartialFit(m mat.Matrix) OnlineTransformer {
 	rows, cols := m.Dims()
-	var p mat.Matrix
-	var cyclesPerformed int
 
-	if r.Type == ColBasedRI {
-		p = CreateRandomProjectionTransform(r.K, cols, r.Density, r.rnd)
-		r.elementalVecs = p.(sparse.TypeConverter).ToCSC()
-
-		r.trainingCycle(m.T())
-	} else {
-		p = CreateRandomProjectionTransform(r.K, rows, r.Density, r.rnd)
-		r.elementalVecs = p.(sparse.TypeConverter).ToCSC()
+	if r.components == nil || r.components.(*sparse.CSR).IsZero() {
+		r.components = sparse.NewCSR(r.K, rows, make([]int, r.K+1), []int{}, []float64{})
 	}
+	current := r.components
 
-	for i := cyclesPerformed; i < r.Reflections; i++ {
-		r.trainingCycle(m)
-		r.trainingCycle(m.T())
-	}
+	// Create transform in transpose to get better randomised sparsity patterns
+	// when partial fitting with small mini-batches e.g. single column/streaming
+	idxVecs := CreateRandomProjectionTransform(cols, r.K, r.Density, r.rnd).T()
+	ctxVecs := r.contextualise(m.T(), idxVecs)
+
+	current.(*sparse.CSR).Add(current, ctxVecs)
+	r.components = current
 
 	return r
 }
 
-// trainingCycle carries out a single training cycle
-func (r *RandomIndexing) trainingCycle(m mat.Matrix) {
-	out, err := r.Transform(m)
-	if err != nil {
-		panic("nlp: Failed to fit reflective random indexing during training cycle")
-	}
-	r.elementalVecs = out
+// Components returns a t x k matrix where `t` is the number of terms
+// (rows) in the training data matrix.  The rows in this matrix
+// are the `context` vectors for RI each one representing
+// a semantic representation of a term based upon the contexts
+// in which it has appeared within the training data.
+func (r *RandomIndexing) Components() mat.Matrix {
+	return r.components.T()
 }
 
-// Transform applies the transform, projecting matrix into the
-// lower dimensional semantic space.  The output matrix will be of
-// shape k x c and will be a sparse CSC format matrix.
-func (r *RandomIndexing) Transform(m mat.Matrix) (mat.Matrix, error) {
-	_, cols := m.Dims()
-	k, _ := r.elementalVecs.Dims()
+// Fit trains the model, creating random index/elemental vectors to
+// be used to construct the new projected feature vectors ('context'
+// vectors) in the reduced semantic dimensional space. If configured for
+// Reflective Random Indexing then Fit may actually run multiple
+// training cycles as specified during construction.  The Fit method
+// trains the model in batch mode so is intended to be called once, for
+// online/streaming or mini-batch training please consider the
+// PartialFit method instead.
+func (r *RandomIndexing) Fit(m mat.Matrix) Transformer {
+	rows, cols := m.Dims()
+	var idxVecs mat.Matrix
 
-	var ind []int
-	var data []float64
-	indptr := make([]int, cols+1)
-	spa := sparse.NewSPA(k)
-
-	if t, isTypeConv := m.(sparse.TypeConverter); isTypeConv {
-		m = t.ToCSC()
+	if r.Type == TermBasedRRI {
+		idxVecs = CreateRandomProjectionTransform(r.K, rows, r.Density, r.rnd)
+	} else {
+		idxVecs = CreateRandomProjectionTransform(r.K, cols, r.Density, r.rnd)
+		idxVecs = r.contextualise(m.T(), idxVecs)
 	}
 
-	for j := 0; j < cols; j++ {
-		ColNonZeroElemDo(m, j, func(i, j int, v float64) {
-			idxVec := r.elementalVecs.(mat.ColViewer).ColView(i).(*sparse.Vector)
-			spa.ScatterVec(idxVec, v, &ind)
-		})
-		spa.GatherAndZero(&data, &ind)
-		indptr[j+1] = len(ind)
+	for i := 0; i < r.Reflections; i++ {
+		idxVecs = r.contextualise(m, idxVecs)
+		idxVecs = r.contextualise(m.T(), idxVecs)
 	}
 
-	product := sparse.NewCSC(r.K, cols, indptr, ind, data)
-
-	return product, nil
+	r.components = idxVecs
+	return r
 }
 
 // FitTransform is approximately equivalent to calling Fit() followed by Transform()
 // on the same matrix.  This is a useful shortcut where separate training data is not being
 // used to fit the model i.e. the model is fitted on the fly to the test data.
-// The returned matrix is a sparse CSC format matrix of shape k x c.
+// The returned matrix is a sparse CSR format matrix of shape k x c.
 func (r *RandomIndexing) FitTransform(m mat.Matrix) (mat.Matrix, error) {
 	return r.Fit(m).Transform(m)
+}
+
+// Transform applies the transform, projecting matrix m into the
+// lower dimensional semantic space.  The output matrix will be of
+// shape k x c and will be a sparse CSR format matrix.  The transformation
+// for each document vector is simply the accumulation of all trained context
+// vectors relating to terms appearing in the document.  These are weighted by
+// the frequency the term appears in the document.
+func (r *RandomIndexing) Transform(m mat.Matrix) (mat.Matrix, error) {
+	return r.contextualise(m, r.components), nil
+}
+
+// contextualise accumulates the vectors vectors for each column in matrix m weighting
+// each row vector in vectors by its corresponding value in column of the matrix
+func (r *RandomIndexing) contextualise(m mat.Matrix, vectors mat.Matrix) mat.Matrix {
+	var product sparse.CSR
+
+	product.Mul(vectors, m)
+
+	return &product
 }
 
 // CreateRandomProjectionTransform returns a new random matrix for
@@ -349,11 +354,13 @@ func CreateRandomProjectionTransform(newDims, origDims int, density float64, rnd
 
 	for i := 0; i < newDims; i++ {
 		nnz := binomial(origDims, density, rnd)
-		idx := make([]int, nnz)
-		sampleuv.WithoutReplacement(idx, origDims, rnd)
-		sort.Ints(idx)
-		ind = append(ind, idx...)
-		ptr += nnz
+		if nnz > 0 {
+			idx := make([]int, nnz)
+			sampleuv.WithoutReplacement(idx, origDims, rnd)
+			//sort.Ints(idx)
+			ind = append(ind, idx...)
+			ptr += nnz
+		}
 		indptr[i+1] = ptr
 	}
 
