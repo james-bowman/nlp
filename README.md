@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/james-bowman/nlp.svg?branch=master)](https://travis-ci.org/james-bowman/nlp)
 [![Go Report Card](https://goreportcard.com/badge/github.com/james-bowman/nlp)](https://goreportcard.com/report/github.com/james-bowman/nlp)
 [![codecov](https://codecov.io/gh/james-bowman/nlp/branch/master/graph/badge.svg)](https://codecov.io/gh/james-bowman/nlp)
-[![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/avelino/awesome-go)
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge-flat.svg)](https://github.com/avelino/awesome-go)
 [![Sourcegraph](https://sourcegraph.com/github.com/james-bowman/nlp/-/badge.svg)](https://sourcegraph.com/github.com/james-bowman/nlp?badge)
 
 
@@ -21,7 +21,7 @@ Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-anal
 ## Features
 
 * [LSA (Latent Semantic Analysis aka Latent Semantic Indexing (LSI))][LSA] implementation using truncated [SVD (Singular Value Decomposition)](https://en.wikipedia.org/wiki/Singular-value_decomposition) for dimensionality reduction.
-* Fast comparison and retrieval of semantically similar documents using [SimHash](https://en.wikipedia.org/wiki/SimHash) algorithm and multi-index and Forest schemes for [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) using [sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection) to support fast, approximate cosine similarity/angular distance comparisons and approximate nearest neighbour search using significantly less memory and processing time.
+* Fast comparison and retrieval of semantically similar documents using [SimHash](https://en.wikipedia.org/wiki/SimHash)(random hyperplanes/[sign random projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)) algorithm with multi-index and Forest schemes for [LSH (Locality Sensitive Hashing)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) to support fast, approximate cosine similarity/angular distance comparisons and approximate nearest neighbour search using significantly less memory and processing time.
 * [Random Indexing (RI)](https://en.wikipedia.org/wiki/Random_indexing) and Reflective Random Indexing (RRI) (which extends RI to support indirect inference) for scalable [Latent Semantic Analysis (LSA)][LSA] over large, web-scale corpora.
 * [Latent Dirichlet Allocation (LDA)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) using a parallelised implementation of the fast [SCVB0 (Stochastic Collapsed Variational Bayesian inference)][SCVB0] algorithm for unsupervised topic extraction. 
 * [PCA (Principal Component Analysis)](https://en.wikipedia.org/wiki/Principal_component_analysis)
