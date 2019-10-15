@@ -186,7 +186,9 @@ func (p *PCA) Transform(m mat.Matrix) (mat.Matrix, error) {
 
 	//var proj mat.Dense
 	var proj sparse.CSR
-	proj.Mul(m.T(), p.pc.VectorsTo(nil).Slice(0, r, 0, p.K))
+	var dst mat.Dense
+	p.pc.VectorsTo(&dst)
+	proj.Mul(m.T(), dst.Slice(0, r, 0, p.K))
 
 	// matrix is r x c (t x d)
 	// m.T() = c x r (d x t)
