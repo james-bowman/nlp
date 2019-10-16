@@ -90,3 +90,20 @@ func HammingDistance(a, b mat.Vector) float64 {
 func HammingSimilarity(a, b mat.Vector) float64 {
 	return 1.0 - HammingDistance(a, b)
 }
+
+// EuclideanDistance calculates the Euclidean distance
+// (l2 distance) between vectors a and b or more specifically
+// \sqrt{\sum_{i=1}^n (a_i - b_i)^2}
+func EuclideanDistance(a, b mat.Vector) float64 {
+	var v mat.VecDense
+	v.SubVec(a, b)
+	return math.Sqrt(mat.Dot(&v, &v))
+}
+
+// ManhattenDistance calculates the Manhatten distance (l1 distance) otherwise
+// known as the taxi cab distance between two vectors a and b.
+func ManhattenDistance(a, b mat.Vector) float64 {
+	var v mat.VecDense
+	v.SubVec(a, b)
+	return mat.Norm(&v, 1)
+}
