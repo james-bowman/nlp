@@ -107,3 +107,8 @@ func ManhattenDistance(a, b mat.Vector) float64 {
 	v.SubVec(a, b)
 	return mat.Norm(&v, 1)
 }
+
+// DotProductSimilarity calculates the dot product of 2 vectors
+func DotProductSimilarity(a, b mat.Vector) float64 {
+	return sparse.Dot(a, b)
+}
