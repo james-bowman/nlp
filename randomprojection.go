@@ -278,6 +278,12 @@ func (r *RandomIndexing) Components() mat.Matrix {
 	return r.components.T()
 }
 
+// SetComponents sets a t x k matrix where `t` is the number of terms
+// (rows) in the training data matrix.
+func (r *RandomIndexing) SetComponents(m *mat.Matrix) {
+	r.components = m
+}
+
 // Fit trains the model, creating random index/elemental vectors to
 // be used to construct the new projected feature vectors ('context'
 // vectors) in the reduced semantic dimensional space. If configured for
