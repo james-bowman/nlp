@@ -71,7 +71,7 @@ func NewTokeniser(stopWords ...string) Tokeniser {
 		stop[word] = true
 	}
 	return &RegExpTokeniser{
-		RegExp:    regexp.MustCompile("[\\S]+"),
+		RegExp:    regexp.MustCompile("[\\p{L}]+"),
 		StopWords: stop,
 	}
 }
