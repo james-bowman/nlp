@@ -280,7 +280,7 @@ func (r *RandomIndexing) Components() mat.Matrix {
 
 // SetComponents sets a t x k matrix where `t` is the number of terms
 // (rows) in the training data matrix.
-func (r *RandomIndexing) SetComponents(m *mat.Matrix) {
+func (r *RandomIndexing) SetComponents(m mat.Matrix) {
 	r.components = m
 }
 
