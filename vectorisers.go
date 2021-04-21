@@ -62,6 +62,7 @@ type RegExpTokeniser struct {
 // NewTokeniser returns a new, default Tokeniser implementation.
 // stopWords is a potentially empty string slice
 // that contains the words that should be removed from the corpus
+// default regExpTokeniser will split words by whitespace/tabs: "\t\n\f\r "
 func NewTokeniser(stopWords ...string) Tokeniser {
 	var stop map[string]bool
 
@@ -70,7 +71,7 @@ func NewTokeniser(stopWords ...string) Tokeniser {
 		stop[word] = true
 	}
 	return &RegExpTokeniser{
-		RegExp:    regexp.MustCompile("[\\p{L}]+"),
+		RegExp:    regexp.MustCompile("[\\S]+"),
 		StopWords: stop,
 	}
 }

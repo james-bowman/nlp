@@ -107,3 +107,12 @@ func ManhattenDistance(a, b mat.Vector) float64 {
 	v.SubVec(a, b)
 	return mat.Norm(&v, 1)
 }
+
+// VectorLenSimilarity calculates the len of ab vectors
+func VectorLenSimilarity(a, b mat.Vector) float64 {
+	dotProduct := sparse.Dot(a, b)
+	if dotProduct == 0 {
+		return math.NaN()
+	}
+	return math.Sqrt(dotProduct)
+}
