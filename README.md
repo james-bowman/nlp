@@ -12,7 +12,7 @@
 
 Implementations of selected machine learning algorithms for natural language processing in golang.  The primary focus for the package is the statistical semantics of plain-text documents supporting semantic analysis and retrieval of semantically similar documents.
 
-Built upon the [Gonum](http://http://www.gonum.org/) package for linear algebra and scientific computing with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/) and [Gensim](https://radimrehurek.com/gensim/).
+Built upon the [Gonum](https://www.gonum.org/) package for linear algebra and scientific computing with some inspiration taken from Python's [scikit-learn](http://scikit-learn.org/stable/) and [Gensim](https://radimrehurek.com/gensim/).
 
 Check out [the companion blog post](http://www.jamesbowman.me/post/semantic-analysis-of-webpages-with-machine-learning-in-go/) or [the Go documentation page](https://godoc.org/github.com/james-bowman/nlp) for full usage and examples.
 
